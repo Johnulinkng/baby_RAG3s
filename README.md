@@ -1,12 +1,12 @@
 # NanAI - Your Baby's AI Nanny 👶
 
-A RAG-powered AI assistant that helps parents with baby care advice, combining document knowledge with real-time web information. Built with Streamlit, Google's Generative AI, and FAISS for efficient semantic search.
+A RAG-powered AI assistant that helps parents with baby care advice, combining document knowledge with real-time web information. Built with Streamlit, Google's Gemini Flash model and Ollama nomic-embed-text open embedding model, and FAISS for efficient semantic search.
 
 NanAI is an intelligent assistant designed to help parents with various aspects of baby care. It provides expert guidance on baby care, safety, development, product information, and parenting advice through an easy-to-use web interface.
 
 ![NanAI Interface](images/user-interface.png)
 
-## Features
+## ✨ Features
 
 - 🤖 AI-powered responses to baby care questions
 - 📚 Knowledge base that can be expanded with custom documents
@@ -14,7 +14,7 @@ NanAI is an intelligent assistant designed to help parents with various aspects 
 - 💬 Interactive chat interface
 - 📱 User-friendly web application built with Streamlit
 
-## Technology Stack
+## 🛠️ Technology Stack
 
 ### Key Technologies
 
@@ -33,7 +33,7 @@ This demo showcases how these technologies can be combined to create an intellig
 3. Learns from new information sources in real-time
 4. Delivers interactive responses through a user-friendly interface
 
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
@@ -105,13 +105,13 @@ streamlit run app.py
 
 The application will be available at `http://localhost:8501` by default.
 
-## Usage
+## 💡 Usage
 
 1. **Ask Questions**: Use the chat interface to ask any baby care related questions
 2. **Add Knowledge**: Upload documents or provide URLs to expand the assistant's knowledge base
 3. **Example Questions**: Try the pre-loaded example questions to get started
 
-## Project Structure
+## 📁 Project Structure
 
 - `app.py` - Main Streamlit application
 - `agent.py` - Core agent implementation
@@ -123,7 +123,7 @@ The application will be available at `http://localhost:8501` by default.
 - `documents/` - Directory for storing knowledge base documents
 - `faiss_index/` - Vector store for document embeddings
 
-## Dependencies
+## 📦 Dependencies
 
 - streamlit - Web application framework
 - faiss-cpu - Vector similarity search
