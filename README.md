@@ -4,6 +4,22 @@ A RAG-powered AI assistant that helps parents with baby care advice, combining d
 
 NanAI is an intelligent assistant designed to help parents with various aspects of baby care. It provides expert guidance on baby care, safety, development, product information, and parenting advice through an easy-to-use web interface.
 
+## 💭 Inspiration
+
+As a new parent to a beautiful baby boy, I found myself constantly searching for answers to various questions about baby care, safety, and development. The journey of parenthood is filled with countless moments of uncertainty and the need for quick, reliable information. 
+
+This project was born from my personal experience of:
+
+- Wanting instant access to trusted information about baby care
+- Needing to quickly reference product manuals and safety guidelines
+- Seeking answers to common parenting questions
+- Managing and organizing various baby care resources in one place
+
+NanAI is my attempt to create a helpful tool that combines my birthing class materials, product documentation, and web resources into an easily accessible knowledge base. I hope it can help other parents navigate the wonderful, yet sometimes overwhelming, journey of raising a child.
+
+PS, the pdfs are from a birthing class in Canada and some of the baby products I have purchased for my newborn son 👶
+
+
 ![NanAI Interface](images/user-interface.png)
 
 ## ✨ Features
