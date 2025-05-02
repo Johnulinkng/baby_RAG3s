@@ -113,7 +113,7 @@ async def main(user_input: str):
         print(f"[agent] Overall error: {str(e)}")
         final_answer = f"Apologies, I'm unable to respond at this moment. Please try again later."
 
-    log("agent", "Agent session complete.")
+    log("agent", "========== Agent session complete. ==========")
     return final_answer
 
 if __name__ == "__main__":
