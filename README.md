@@ -36,9 +36,11 @@ This demo showcases how these technologies can be combined to create an intellig
 ### Prerequisites
 
 - Python 3.10
-- pip (Python package installer)
+- [uv](https://github.com/astral-sh/uv) - Fast Python package installer and resolver
 
 ### Installation
+
+#### Option 1: Clone and Install
 
 1. Clone the repository:
 
@@ -50,14 +52,37 @@ cd baby-care-agent
 2. Create and activate a virtual environment:
 
 ```bash
-python -m venv .venv
+uv venv
 source .venv/bin/activate  # On Windows, use `.venv\Scripts\activate`
 ```
 
-3. Install dependencies:
+3. Install dependencies using uv:
 
 ```bash
-pip install -e .
+uv pip install -e .
+```
+
+#### Option 2: Quick Start with uv
+
+1. Create a new directory and initialize the project:
+
+```bash
+mkdir baby-care-agent
+cd baby-care-agent
+```
+
+2. Initialize with uv:
+
+```bash
+uv venv
+source .venv/bin/activate  # On Windows, use `.venv\Scripts\activate`
+```
+
+3. Clone and set up the project:
+
+```bash
+git clone https://github.com/rohinigaonkar/baby-care-agent.git .
+uv pip install -e .
 ```
 
 4. Set up environment variables:
