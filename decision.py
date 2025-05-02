@@ -84,7 +84,7 @@ IMPORTANT:
             contents=prompt
         )
         raw = response.text.strip()
-        log("plan", f"LLM output: {raw}")
+        # log("plan", f"LLM output: {raw}")
 
         for line in raw.splitlines():
             if line.strip().startswith("FUNCTION_CALL:") or line.strip().startswith("FINAL_ANSWER:"):

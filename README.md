@@ -1,5 +1,7 @@
 # NanAI - Your Baby's AI Nanny 👶
 
+A RAG-powered AI assistant that helps parents with baby care advice, combining document knowledge with real-time web information. Built with Streamlit, Google's Generative AI, and FAISS for efficient semantic search.
+
 NanAI is an intelligent assistant designed to help parents with various aspects of baby care. It provides expert guidance on baby care, safety, development, product information, and parenting advice through an easy-to-use web interface.
 
 ![NanAI Interface](images/user-interface.png)

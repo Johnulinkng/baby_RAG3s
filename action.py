@@ -48,7 +48,7 @@ def parse_function_call(response: str) -> tuple[str, Dict[str, Any]]:
                 current = current.setdefault(k, {})
             current[keys[-1]] = parsed_value
 
-        log("parser", f"Parsed: {func_name} → {result}")
+        # log("parser", f"Parsed: {func_name} → {result}")
         return func_name, result
 
     except Exception as e:
@@ -65,7 +65,7 @@ async def execute_tool(session: ClientSession, tools: list[Any], response: str) 
         if not tool:
             raise ValueError(f"Tool '{tool_name}' not found in registered tools")
 
-        log("tool", f"⚙️ Calling '{tool_name}' with: {arguments}")
+        # log("tool", f"⚙️ Calling '{tool_name}' with: {arguments}")
         result = await session.call_tool(tool_name, arguments=arguments)
 
         if hasattr(result, 'content'):

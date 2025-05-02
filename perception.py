@@ -48,7 +48,7 @@ Output only the dictionary on a single line. Do NOT wrap it in ```json or other 
             contents=prompt
         )
         raw = response.text.strip()
-        log("perception", f"LLM output: {raw}")
+        # log("perception", f"LLM output: {raw}")
 
         # Strip Markdown backticks if present
         clean = re.sub(r"^```json|```$", "", raw.strip(), flags=re.MULTILINE).strip()
