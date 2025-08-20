@@ -4,12 +4,10 @@ import os
 import json
 import hashlib
 import requests
+import time
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from markitdown import MarkItDown
-from tqdm import tqdm
-import faiss
-import numpy as np
 
 from .config import RAGConfig
 from .models import DocumentInfo
@@ -177,20 +175,42 @@ class DocumentProcessor:
     def _update_metadata(self, doc_info: DocumentInfo, chunks: List[Dict[str, Any]]):
         """Update metadata file with new document and chunks."""
         metadata_file = self.index_dir / "metadata.json"
-        
+
         # Load existing metadata
         if metadata_file.exists():
             with open(metadata_file, 'r', encoding='utf-8') as f:
-                metadata = json.load(f)
+                existing_data = json.load(f)
+
+                # Handle old format (array) vs new format (object)
+                if isinstance(existing_data, list):
+                    # Convert old format to new format
+                    metadata = {'documents': {}, 'chunks': existing_data}
+                    # Try to extract document info from chunks
+                    for chunk in existing_data:
+                        if 'doc' in chunk:
+                            doc_name = chunk['doc']
+                            doc_id = hashlib.md5(doc_name.encode()).hexdigest()
+                            if doc_id not in metadata['documents']:
+                                metadata['documents'][doc_id] = {
+                                    'doc_id': doc_id,
+                                    'title': doc_name,
+                                    'file_path': f"documents/{doc_name}",
+                                    'added_date': str(time.time()),
+                                    'chunk_count': 0,
+                                    'file_size': 0,
+                                    'doc_type': '.pdf'
+                                }
+                else:
+                    metadata = existing_data
         else:
             metadata = {'documents': {}, 'chunks': []}
-        
+
         # Add document info
         metadata['documents'][doc_info.doc_id] = doc_info.model_dump()
-        
+
         # Add chunks
         metadata['chunks'].extend(chunks)
-        
+
         # Save updated metadata
         with open(metadata_file, 'w', encoding='utf-8') as f:
             json.dump(metadata, f, indent=2, ensure_ascii=False)
@@ -198,20 +218,42 @@ class DocumentProcessor:
     def list_documents(self) -> List[DocumentInfo]:
         """List all documents in the knowledge base."""
         metadata_file = self.index_dir / "metadata.json"
-        
+
         if not metadata_file.exists():
             return []
-        
+
         try:
             with open(metadata_file, 'r', encoding='utf-8') as f:
-                metadata = json.load(f)
-            
+                existing_data = json.load(f)
+
+                # Handle old format (array) vs new format (object)
+                if isinstance(existing_data, list):
+                    # Convert old format to new format
+                    metadata = {'documents': {}, 'chunks': existing_data}
+                    # Try to extract document info from chunks
+                    for chunk in existing_data:
+                        if 'doc' in chunk:
+                            doc_name = chunk['doc']
+                            doc_id = hashlib.md5(doc_name.encode()).hexdigest()
+                            if doc_id not in metadata['documents']:
+                                metadata['documents'][doc_id] = {
+                                    'doc_id': doc_id,
+                                    'title': doc_name,
+                                    'file_path': f"documents/{doc_name}",
+                                    'added_date': str(time.time()),
+                                    'chunk_count': 0,
+                                    'file_size': 0,
+                                    'doc_type': '.pdf'
+                                }
+                else:
+                    metadata = existing_data
+
             documents = []
             for doc_data in metadata.get('documents', {}).values():
                 documents.append(DocumentInfo(**doc_data))
-            
+
             return documents
-            
+
         except Exception as e:
             print(f"Error listing documents: {e}")
             return []

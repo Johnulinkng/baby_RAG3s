@@ -58,15 +58,23 @@ class SearchEngine:
         try:
             index_file = self.index_dir / "index.bin"
             metadata_file = self.index_dir / "metadata.json"
-            
+
             if index_file.exists() and metadata_file.exists():
                 self.faiss_index = faiss.read_index(str(index_file))
                 with open(metadata_file, 'r', encoding='utf-8') as f:
-                    self.metadata = json.load(f)
+                    existing_data = json.load(f)
+
+                    # Handle old format (array) vs new format (object)
+                    if isinstance(existing_data, list):
+                        # Convert old format to new format
+                        self.metadata = {'documents': {}, 'chunks': existing_data}
+                    else:
+                        self.metadata = existing_data
+
                 print(f"Loaded index with {len(self.metadata.get('chunks', []))} chunks")
             else:
                 print("No existing index found. Will create new index when documents are added.")
-                
+
         except Exception as e:
             print(f"Error loading index: {e}")
             self.faiss_index = None
@@ -225,23 +233,30 @@ class SearchEngine:
             search_results = []
             chunks = self.metadata['chunks']
             documents = self.metadata.get('documents', {})
-            
+
             for idx, score in combined_results[:top_k]:
                 if idx < len(chunks):
                     chunk = chunks[idx]
+
+                    # Handle both old and new chunk formats
+                    chunk_text = chunk.get('text') or chunk.get('chunk', '')
                     doc_id = chunk.get('doc_id', 'unknown')
-                    doc_info = documents.get(doc_id, {})
-                    source_name = doc_info.get('title', 'Unknown Document')
-                    
+                    source_name = chunk.get('doc', 'Unknown Document')
+
+                    # Try to get better source name from documents metadata
+                    if doc_id in documents:
+                        doc_info = documents[doc_id]
+                        source_name = doc_info.get('title', source_name)
+
                     search_results.append(SearchResult(
-                        text=chunk['text'],
+                        text=chunk_text,
                         source=source_name,
                         score=score,
-                        chunk_id=chunk.get('id'),
+                        chunk_id=chunk.get('id') or chunk.get('chunk_id'),
                         metadata={
                             'doc_id': doc_id,
                             'chunk_id': chunk.get('chunk_id'),
-                            'file_path': doc_info.get('file_path')
+                            'file_path': documents.get(doc_id, {}).get('file_path')
                         }
                     ))
             
