@@ -80,6 +80,7 @@ def _rrf_fusion(bm25_indices: iter, vec_ranking: list[int], k: int = 60) -> list
 def get_embedding(text: str) -> np.ndarray:
     response = requests.post(EMBED_URL, json={"model": EMBED_MODEL, "prompt": text})
     response.raise_for_status()
+    return np.array(response.json()["embedding"], dtype=np.float32)
 
 from temperature_rules import extract_temperature
 
@@ -93,7 +94,6 @@ def _format_temp_range_as_both_units(min_v: float, max_v: float, unit: str) -> s
         fmax = (max_v * 9/5) + 32
         return f"{int(round(fmin))}–{int(round(fmax))}°F ({int(min_v)}–{int(max_v)}°C)"
 
-    return np.array(response.json()["embedding"], dtype=np.float32)
 
 def chunk_text(text, size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
     words = text.split()
