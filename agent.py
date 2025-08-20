@@ -84,6 +84,15 @@ async def main(user_input: str):
                                     result = await execute_tool(session, tools, plan)
                                     log("tool", f"{result.tool_name} returned: {result.result}")
 
+                                    # If we have sources from the tool output, carry them forward explicitly in the next prompt
+                                    sources_suffix = ""
+                                    try:
+                                        if getattr(result, 'sources', None):
+                                            unique_sources = "; ".join(result.sources)
+                                            sources_suffix = f"\nSources: {unique_sources}"
+                                    except Exception:
+                                        pass
+
                                     memory.add(MemoryItem(
                                         text=f"Tool call: {result.tool_name} with {result.arguments}, got: {result.result}",
                                         type="tool_output",
@@ -93,7 +102,7 @@ async def main(user_input: str):
                                         session_id=session_id
                                     ))
 
-                                    user_input = f"Original task: {query}\nPrevious output: {result.result}\nWhat should I do next?"
+                                    user_input = f"Original task: {query}\nPrevious output: {result.result}{sources_suffix}\nWhat should I do next?"
 
                                 except Exception as e:
                                     log("error", f"Tool execution failed: {e}")

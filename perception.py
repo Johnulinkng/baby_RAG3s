@@ -36,7 +36,7 @@ INTENT_PATTERNS: Dict[str, list[str]] = {
 
 class PerceptionResult(BaseModel):
     user_input: str
-    intent: Optional[str]
+    intent: Optional[str] = None
     entities: List[str] = []
     tool_hint: Optional[str] = None
 

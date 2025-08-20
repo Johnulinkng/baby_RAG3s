@@ -18,6 +18,7 @@ class ToolCallResult(BaseModel):
     arguments: Dict[str, Any]
     result: Union[str, list, dict]
     raw_response: Any
+    sources: list[str] = []
 
 
 def parse_function_call(response: str) -> tuple[str, Dict[str, Any]]:
@@ -77,7 +78,7 @@ async def execute_tool(session: ClientSession, tools: list[Any], response: str) 
             out = str(result)
 
         # If the tool output contains multiple snippets with [Source: ...], collect unique filenames
-        sources = []
+        sources: list[str] = []
         try:
             from re import findall
             if isinstance(out, list):
@@ -92,10 +93,12 @@ async def execute_tool(session: ClientSession, tools: list[Any], response: str) 
                     if m not in seen:
                         sources.append(m)
                         seen.add(m)
-                if isinstance(out, list):
-                    out.append(f"Sources: {'; '.join(sources)}")
-                else:
-                    out = f"{joined}\nSources: {'; '.join(sources)}"
+                # Append a Sources line only if it's not already present
+                if 'Sources:' not in joined:
+                    if isinstance(out, list):
+                        out.append(f"Sources: {'; '.join(sources)}")
+                    else:
+                        out = f"{joined}\nSources: {'; '.join(sources)}"
         except Exception:
             pass
 
@@ -104,7 +107,8 @@ async def execute_tool(session: ClientSession, tools: list[Any], response: str) 
             tool_name=tool_name,
             arguments=arguments,
             result=out,
-            raw_response=result
+            raw_response=result,
+            sources=sources
         )
 
     except Exception as e:
