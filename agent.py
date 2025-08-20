@@ -61,7 +61,7 @@ async def main(user_input: str):
                             session_id = f"session-{int(time.time())}"
                             query = user_input
                             step = 0
-                            final_answer = ""
+                            final_answer = "No response generated."
 
                             while step < max_steps:
                                 log("loop", f"Step {step + 1} started")
@@ -82,27 +82,33 @@ async def main(user_input: str):
 
                                 try:
                                     result = await execute_tool(session, tools, plan)
-                                    log("tool", f"{result.tool_name} returned: {result.result}")
+                                    log("tool", f"{result.tool_name} returned result (length: {len(str(result.result))})")
 
-                                    # If we have sources from the tool output, carry them forward explicitly in the next prompt
-                                    sources_suffix = ""
-                                    try:
-                                        if getattr(result, 'sources', None):
-                                            unique_sources = "; ".join(result.sources)
-                                            sources_suffix = f"\nSources: {unique_sources}"
-                                    except Exception:
-                                        pass
-
+                                    # Store search results and let LLM generate final answer
                                     memory.add(MemoryItem(
                                         text=f"Tool call: {result.tool_name} with {result.arguments}, got: {result.result}",
                                         type="tool_output",
                                         tool_name=result.tool_name,
-                                        user_query=user_input,
+                                        user_query=query,
                                         tags=[result.tool_name],
                                         session_id=session_id
                                     ))
 
-                                    user_input = f"Original task: {query}\nPrevious output: {result.result}{sources_suffix}\nWhat should I do next?"
+                                    # For search_documents, prepare context for LLM to generate final answer
+                                    if result.tool_name == "search_documents":
+                                        user_input = f"Original question: {query}\nSearch results: {result.result}\nBased on the search results above, provide a concise and direct answer to the original question."
+                                    else:
+                                        # For other tools, continue with original logic
+                                        sources_suffix = ""
+                                        try:
+                                            if getattr(result, 'sources', None):
+                                                unique_sources = "; ".join(result.sources)
+                                                sources_suffix = f"\nSources: {unique_sources}"
+                                        except Exception:
+                                            pass
+                                        user_input = f"Original task: {query}\nPrevious output: {result.result}{sources_suffix}\nWhat should I do next?"
+
+
 
                                 except Exception as e:
                                     log("error", f"Tool execution failed: {e}")

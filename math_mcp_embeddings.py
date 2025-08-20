@@ -28,7 +28,7 @@ EMBED_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 EMBED_URL = f"{EMBED_BASE_URL.rstrip('/')}/api/embeddings"
 EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
 CHUNK_SIZE = 256
-CHUNK_OVERLAP = 40
+CHUNK_OVERLAP = 40#can be set up to 50
 ROOT = Path(__file__).parent.resolve()
 from rank_bm25 import BM25Okapi
 
@@ -130,7 +130,7 @@ def search_documents(query: str) -> list[str]:
         fused = _rrf_fusion(bm25_scores.keys(), vec_ranking, k=60)
 
         # 5) Compose results with file name and chunk id, with temperature range extraction
-        top_indices = fused[:10]
+        top_indices = fused[:5]  # Reduce to 5 for more focused results
         results = []
         sources = []
         for idx in top_indices:

@@ -73,9 +73,11 @@ IMPORTANT:
 - 🚫 Do NOT invent tools. Use only the tools listed below.
 - 📄 If the question may relate to factual knowledge, use the 'search_documents' tool to look for the answer.
 - 🧮 If the question is mathematical or needs calculation, use the appropriate math tool.
-- 🤖 If the previous tool output already contains factual information, DO NOT search again. Instead, summarize the relevant facts and respond with: FINAL_ANSWER: [your answer]
-- When the answer can be directly formed from retrieved snippets, prefer FINAL_ANSWER over additional tool calls.
-- Only repeat `search_documents` if the last result was irrelevant or empty.
+- 🤖 If the previous tool output already contains factual information, DO NOT search again. Instead, extract the key answer and respond with: FINAL_ANSWER: [concise answer]
+- When you see "Search results:" in the input, this means search has been completed. Extract the most relevant answer from the results and provide a FINAL_ANSWER.
+- For temperature questions, extract the specific temperature range or value from the search results.
+- Keep FINAL_ANSWER concise and direct - just the key information requested.
+- Only repeat `search_documents` if the last result was completely irrelevant or empty.
 - ❌ Do NOT repeat function calls with the same parameters.
 - ❌ Do NOT output unstructured responses.
 - 🧠 Think before each step. Verify intermediate results mentally before proceeding.
