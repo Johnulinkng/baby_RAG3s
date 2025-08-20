@@ -80,6 +80,19 @@ def _rrf_fusion(bm25_indices: iter, vec_ranking: list[int], k: int = 60) -> list
 def get_embedding(text: str) -> np.ndarray:
     response = requests.post(EMBED_URL, json={"model": EMBED_MODEL, "prompt": text})
     response.raise_for_status()
+
+from temperature_rules import extract_temperature
+
+def _format_temp_range_as_both_units(min_v: float, max_v: float, unit: str) -> str:
+    if unit.upper() == 'F':
+        cmin = (min_v - 32) * 5/9
+        cmax = (max_v - 32) * 5/9
+        return f"{int(min_v)}–{int(max_v)}°F ({int(round(cmin))}–{int(round(cmax))}°C)"
+    else:
+        fmin = (min_v * 9/5) + 32
+        fmax = (max_v * 9/5) + 32
+        return f"{int(round(fmin))}–{int(round(fmax))}°F ({int(min_v)}–{int(max_v)}°C)"
+
     return np.array(response.json()["embedding"], dtype=np.float32)
 
 def chunk_text(text, size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
@@ -110,18 +123,37 @@ def search_documents(query: str) -> list[str]:
 
         # 3) Vector search over original query
         query_vec = get_embedding(query).reshape(1, -1)
-        D, I = index.search(query_vec, k=20)
+        _D, I = index.search(query_vec, k=20)
         vec_ranking = [int(i) for i in I[0] if i < len(metadata)]
 
         # 4) RRF fusion
         fused = _rrf_fusion(bm25_scores.keys(), vec_ranking, k=60)
 
-        # 5) Compose results with file name and chunk id
+        # 5) Compose results with file name and chunk id, with temperature range extraction
         top_indices = fused[:10]
         results = []
+        sources = []
         for idx in top_indices:
             data = metadata[idx]
-            results.append(f"{data['chunk']}\n[Source: {data['doc']}, ID: {data['chunk_id']}]")
+            chunk_text = data['chunk']
+            # Try to extract temperature range and format with both units
+            temps = extract_temperature(chunk_text)
+            if temps:
+                t = temps[0]
+                formatted = _format_temp_range_as_both_units(t['min'], t['max'], t['unit'])
+                results.append(f"{formatted}\n[Source: {data['doc']}, ID: {data['chunk_id']}]")
+            else:
+                results.append(f"{chunk_text}\n[Source: {data['doc']}, ID: {data['chunk_id']}]")
+            sources.append(data['doc'])
+        # append a final Sources line (unique)
+        if sources:
+            uniq = []
+            seen = set()
+            for s in sources:
+                if s not in seen:
+                    uniq.append(s)
+                    seen.add(s)
+            results.append(f"Sources: {'; '.join(uniq)}")
         return results
     except Exception as e:
         return [f"ERROR: Failed to search: {str(e)}"]
