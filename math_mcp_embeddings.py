@@ -17,15 +17,65 @@ from models import AddInput, AddOutput, SqrtInput, SqrtOutput, StringsToIntsInpu
 from PIL import Image as PILImage
 from tqdm import tqdm
 import hashlib
+from dotenv import load_dotenv
 
 
 mcp = FastMCP("Calculator")
 
-EMBED_URL = "http://localhost:11434/api/embeddings"
-EMBED_MODEL = "nomic-embed-text"
+# Load env and allow configurable embedding endpoint/model
+load_dotenv()
+EMBED_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+EMBED_URL = f"{EMBED_BASE_URL.rstrip('/')}/api/embeddings"
+EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
 CHUNK_SIZE = 256
 CHUNK_OVERLAP = 40
 ROOT = Path(__file__).parent.resolve()
+from rank_bm25 import BM25Okapi
+
+
+def _load_synonyms() -> dict:
+    try:
+        return json.loads((ROOT / 'babycare_synonyms.json').read_text(encoding='utf-8'))
+    except Exception:
+        return {}
+
+
+def _expand_query_with_synonyms(text: str) -> str:
+    syn = _load_synonyms()
+    tokens = list(text)
+    expanded = []
+    for t in tokens:
+        expanded.append(t)
+        if t in syn:
+            expanded.extend(syn[t])
+    return " ".join(expanded)
+
+
+def _bm25_search(expanded_query: str, metadata: list[dict], top_k: int = 20) -> dict[int, float]:
+    corpus = [m['chunk'] for m in metadata]
+    tokenized_corpus = [list(doc) for doc in corpus]
+    bm25 = BM25Okapi(tokenized_corpus)
+    scores = bm25.get_scores(list(expanded_query))
+    # take top_k indices by score
+    idxs = np.argsort(scores)[::-1][:top_k]
+    return {int(i): float(scores[int(i)]) for i in idxs}
+
+
+def _rrf_fusion(bm25_indices: iter, vec_ranking: list[int], k: int = 60) -> list[int]:
+    # bm25_indices is a set/dict keys of indices
+    bm25_ranks = {idx: rank + 1 for rank, idx in enumerate(bm25_indices)}
+    vec_ranks = {idx: rank + 1 for rank, idx in enumerate(vec_ranking)}
+    all_ids = set(bm25_ranks.keys()) | set(vec_ranks.keys())
+    def score(doc_id: int) -> float:
+        s = 0.0
+        if doc_id in bm25_ranks:
+            s += 1.0 / (bm25_ranks[doc_id] + k)
+        if doc_id in vec_ranks:
+            s += 1.0 / (vec_ranks[doc_id] + k)
+        return s
+    ranked = sorted(all_ids, key=lambda d: score(d), reverse=True)
+    return ranked
+
 
 def get_embedding(text: str) -> np.ndarray:
     response = requests.post(EMBED_URL, json={"model": EMBED_MODEL, "prompt": text})
@@ -44,16 +94,32 @@ def mcp_log(level: str, message: str) -> None:
 
 @mcp.tool()
 def search_documents(query: str) -> list[str]:
-    """Search for relevant content from uploaded documents."""
+    """Hybrid search (BM25+Vector) with query expansion and RRF fusion. Returns top snippets with source filenames."""
     ensure_faiss_ready()
     mcp_log("SEARCH", f"Query: {query}")
     try:
+        # Load metadata and FAISS index
         index = faiss.read_index(str(ROOT / "faiss_index" / "index.bin"))
         metadata = json.loads((ROOT / "faiss_index" / "metadata.json").read_text())
+
+        # 1) Query expansion via local synonyms
+        expanded = _expand_query_with_synonyms(query)
+
+        # 2) BM25 over chunk texts
+        bm25_scores = _bm25_search(expanded, metadata, top_k=20)
+
+        # 3) Vector search over original query
         query_vec = get_embedding(query).reshape(1, -1)
-        D, I = index.search(query_vec, k=5)
+        D, I = index.search(query_vec, k=20)
+        vec_ranking = [int(i) for i in I[0] if i < len(metadata)]
+
+        # 4) RRF fusion
+        fused = _rrf_fusion(bm25_scores.keys(), vec_ranking, k=60)
+
+        # 5) Compose results with file name and chunk id
+        top_indices = fused[:10]
         results = []
-        for idx in I[0]:
+        for idx in top_indices:
             data = metadata[idx]
             results.append(f"{data['chunk']}\n[Source: {data['doc']}, ID: {data['chunk_id']}]")
         return results
@@ -78,7 +144,7 @@ def convert_temperature(input: TemperatureInput) -> TemperatureOutput:
         result = (input.value - 32) * 5/9
     else:
         raise ValueError("Invalid target scale. Use 'C' for Celsius or 'F' for Fahrenheit.")
-    
+
     return TemperatureOutput(result=result)
 
 @mcp.tool()
@@ -107,7 +173,7 @@ def multiply(a: int, b: int) -> int:
     return int(a * b)
 
 #  division tool
-@mcp.tool() 
+@mcp.tool()
 def divide(a: int, b: int) -> float:
     """Divide two numbers"""
     print("CALLED: divide(a: int, b: int) -> float:")
@@ -304,8 +370,8 @@ def ensure_faiss_ready():
 if __name__ == "__main__":
     print("STARTING THE SERVER AT AMAZING LOCATION")
 
-    
-    
+
+
     if len(sys.argv) > 1 and sys.argv[1] == "dev":
         mcp.run() # Run without transport for dev server
     else:
@@ -314,13 +380,13 @@ if __name__ == "__main__":
         server_thread = threading.Thread(target=lambda: mcp.run(transport="stdio"))
         server_thread.daemon = True
         server_thread.start()
-        
+
         # Wait a moment for the server to start
         time.sleep(2)
-        
+
         # Process documents after server is running
         process_documents()
-        
+
         # Keep the main thread alive
         try:
             while True:

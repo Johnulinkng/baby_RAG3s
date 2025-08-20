@@ -6,6 +6,7 @@ import requests
 from typing import List, Optional, Literal
 from pydantic import BaseModel
 from datetime import datetime
+import os
 
 
 class MemoryItem(BaseModel):
@@ -19,9 +20,11 @@ class MemoryItem(BaseModel):
 
 
 class MemoryManager:
-    def __init__(self, embedding_model_url="http://localhost:11434/api/embeddings", model_name="nomic-embed-text"):
-        self.embedding_model_url = embedding_model_url
-        self.model_name = model_name
+    def __init__(self, embedding_model_url=None, model_name=None):
+        # Allow override via env vars
+        base = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").rstrip('/')
+        self.embedding_model_url = embedding_model_url or f"{base}/api/embeddings"
+        self.model_name = model_name or os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
         self.index = None
         self.data: List[MemoryItem] = []
         self.embeddings: List[np.ndarray] = []

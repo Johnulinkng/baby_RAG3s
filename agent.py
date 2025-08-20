@@ -12,6 +12,7 @@ from mcp.client.stdio import stdio_client
 
 import shutil
 import sys
+from pathlib import Path
 
 def log(stage: str, msg: str):
     now = datetime.datetime.now().strftime("%H:%M:%S")
@@ -27,7 +28,7 @@ async def main(user_input: str):
         server_params = StdioServerParameters(
             command="python",
             args=["math_mcp_embeddings.py"],
-            cwd="/Users/rohinim1/Documents/Personal/Gaonkar-EAGv1/Cursor/Assignment-7/baby-care-agent"
+            cwd=str(Path(__file__).parent.resolve())
         )
 
         try:

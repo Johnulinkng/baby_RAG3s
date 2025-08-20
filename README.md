@@ -107,6 +107,8 @@ uv pip install -e .
 
 ```bash
 cp env-template .env
+# Windows PowerShell
+Copy-Item env-template .env
 ```
 
 Edit the `.env` file with your required API keys and configurations.
@@ -120,6 +122,33 @@ streamlit run app.py
 ```
 
 The application will be available at `http://localhost:8501` by default.
+
+### Configuring Embedding Service (Ollama)
+
+By default, embeddings are requested from a local Ollama server:
+- Base URL: http://localhost:11434
+- Model: nomic-embed-text
+
+You can override via environment variables in `.env`:
+
+```bash
+# optional overrides
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_EMBED_MODEL=nomic-embed-text
+```
+
+On Windows, if the `ollama` command is not on PATH, use the full path:
+
+```powershell
+& "C:\\Program Files\\Ollama\\ollama.exe" serve
+& "C:\\Program Files\\Ollama\\ollama.exe" pull nomic-embed-text
+```
+
+On Linux/EC2 (CPU-only is fine for this project):
+- Install Ollama for Linux
+- Start the service: `ollama serve`
+- Pull model: `ollama pull nomic-embed-text`
+- Ensure the app host can reach `${OLLAMA_BASE_URL}/api/embeddings`
 
 ## 💡 Usage
 
