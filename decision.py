@@ -46,6 +46,10 @@ Guidelines:
 - You can reference these relevant memories:
 {memory_texts}
 
+Formatting rules for common cases:
+- Temperature ranges: if you identify a range in °F (e.g., 68–72°F), return a single FINAL_ANSWER with both units: "68–72°F (20–22°C)". Avoid calling convert_temperature repeatedly for each bound.
+- Sources: if the latest tool output includes snippets like "[Source: FILENAME, ...]", include a final line: "Sources: FILENAME1; FILENAME2" with unique filenames.
+
 Input Summary:
 - User input: "{perception.user_input}"
 - Intent: {perception.intent}
@@ -70,6 +74,7 @@ IMPORTANT:
 - 📄 If the question may relate to factual knowledge, use the 'search_documents' tool to look for the answer.
 - 🧮 If the question is mathematical or needs calculation, use the appropriate math tool.
 - 🤖 If the previous tool output already contains factual information, DO NOT search again. Instead, summarize the relevant facts and respond with: FINAL_ANSWER: [your answer]
+- When the answer can be directly formed from retrieved snippets, prefer FINAL_ANSWER over additional tool calls.
 - Only repeat `search_documents` if the last result was irrelevant or empty.
 - ❌ Do NOT repeat function calls with the same parameters.
 - ❌ Do NOT output unstructured responses.

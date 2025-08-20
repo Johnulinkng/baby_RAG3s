@@ -76,6 +76,29 @@ async def execute_tool(session: ClientSession, tools: list[Any], response: str) 
         else:
             out = str(result)
 
+        # If the tool output contains multiple snippets with [Source: ...], collect unique filenames
+        sources = []
+        try:
+            from re import findall
+            if isinstance(out, list):
+                joined = "\n".join(out)
+            else:
+                joined = str(out)
+            matches = findall(r"\[Source:\s*([^,\]]+)", joined)
+            if matches:
+                # de-duplicate while preserving order
+                seen = set()
+                for m in matches:
+                    if m not in seen:
+                        sources.append(m)
+                        seen.add(m)
+                if isinstance(out, list):
+                    out.append(f"Sources: {'; '.join(sources)}")
+                else:
+                    out = f"{joined}\nSources: {'; '.join(sources)}"
+        except Exception:
+            pass
+
         log("tool", f"✅ {tool_name} result: {out}")
         return ToolCallResult(
             tool_name=tool_name,
