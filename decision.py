@@ -2,9 +2,8 @@ from perception import PerceptionResult
 from memory import MemoryItem
 from typing import List, Optional
 from dotenv import load_dotenv
-from google import genai
+from openai import OpenAI  # fallback if get_secret is unavailable
 import os
-
 import re
 
 # Optional: import log from agent if shared, else define locally
@@ -17,7 +16,14 @@ except ImportError:
         print(f"[{now}] [{stage}] {msg}")
 
 load_dotenv()
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+# Initialize OpenAI client via external get_secret if available
+try:
+    import sys as _sys
+    _sys.path.append("/home/ubuntu/ios_backend")
+    from bk_ask.config import get_secret as _get_secret
+    client = _get_secret()
+except Exception:
+    client = OpenAI()
 
 def generate_plan(
     perception: PerceptionResult,
@@ -93,11 +99,12 @@ IMPORTANT:
 """
 
     try:
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=prompt
+        response = client.chat.completions.create(
+            model=os.getenv("OPENAI_LLM_MODEL", "gpt-4o-mini"),
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.2,
         )
-        raw = response.text.strip()
+        raw = (response.choices[0].message.content or "").strip()
         log("plan", f"LLM raw output: {raw}")
 
         for line in raw.splitlines():
