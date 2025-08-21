@@ -58,7 +58,7 @@ Agent循环:
 ### 环境要求
 
 - **Python 3.10+**
-- **Google Gemini API Key** - [获取地址](https://makersuite.google.com/app/apikey)
+- **OpenAI API Key**（或使用 AWS Secrets Manager + get_secret 自动读取）
 - **Ollama服务器** - [下载地址](https://ollama.ai/)
 - **Git** - 用于克隆仓库
 
@@ -69,12 +69,14 @@ Agent循环:
 git clone https://github.com/Johnulinkng/babycare_RAG_CMD.git
 cd babycare_RAG_CMD
 
-# 2. 创建虚拟环境 (推荐)
-python -m venv .venv
-# Windows
-.venv\Scripts\activate
-# Linux/Mac
-# source .venv/bin/activate
+# 2. 创建虚拟环境 (推荐，仓库不包含 .venv，需要自己创建)
+python3 -m venv .venv
+# Windows:
+#   .venv\Scripts\activate
+# Ubuntu/Linux/macOS:
+#   source .venv/bin/activate
+# 如提示 venv 不存在：
+#   sudo apt-get update && sudo apt-get install -y python3-venv
 
 # 3. 安装依赖
 pip install -e .
@@ -83,12 +85,12 @@ pip install -e .
 cp env-template .env
 # 编辑 .env 文件，添加你的API密钥
 
-# 5. 启动Ollama服务（没有的话请下载服务）
+# 5. 启动Ollama服务（Ubuntu/EC2 环境工业化安装示例见下）
 ollama serve
 # 在另一个终端中拉取嵌入模型
 ollama pull nomic-embed-text
 
-# 6. 运行设置脚本
+# 6. 运行设置脚本（首次构建索引）
 python setup_rag.py
 
 # 7. 验证安装
@@ -98,10 +100,17 @@ python -c "from babycare_rag.api import BabyCareRAGAPI; print('安装成功！')
 ### 环境配置 (.env文件)
 
 ```bash
-# LLM配置
-GEMINI_API_KEY=your_actual_api_key_here
+# LLM配置（两种方式二选一）
+# A) 使用 AWS Secrets Manager + get_secret（推荐生产）
+SECRET_ID=your_aws_secretsmanager_secret_id
+AWS_REGION=your_aws_region
+# 你的 Secret JSON 中需包含键：OPENAI_IOS_KEY
 
-# 嵌入模型配置
+# B) 本地/临时：直接设置OpenAI环境变量
+OPENAI_API_KEY=sk-...               # OpenAI 密钥
+OPENAI_LLM_MODEL=gpt-4o-mini        # 可选，默认 gpt-4o-mini
+
+# 嵌入模型配置（Ollama）
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_EMBED_MODEL=nomic-embed-text
 
@@ -134,7 +143,7 @@ print('RAG结果:', result['data']['answer'] if result['success'] else result['e
 "
 ```
 
-### 1. 命令行界面 
+### 1. 命令行界面
 
 ```bash
 # 交互式CLI
@@ -206,17 +215,17 @@ from babycare_rag import RAGConfig, BabyCareRAG
 
 config = RAGConfig(
     # LLM设置
-    llm_model="gemini-2.0-flash",
+    llm_model="gpt-4o-mini",
     max_steps=5,
-    
+
     # 检索设置
     top_k=3,
     search_top_k=20,
-    
+
     # 文档处理
     chunk_size=1000,
     chunk_overlap=200,
-    
+
     # 搜索权重
     bm25_weight=0.3,
     vector_weight=0.7
@@ -414,10 +423,12 @@ graph TD
    curl http://localhost:11434/api/tags
    ```
 
-4. **"GEMINI_API_KEY not found"**
+4. **"OpenAI API key not found"**
    ```bash
    # 检查环境变量
-   python -c "import os; print(os.getenv('GEMINI_API_KEY'))"
+   python -c "import os; print(os.getenv('OPENAI_API_KEY'))"
+   # 或检查 AWS SecretsManager 环境变量
+   python -c "import os; print(os.getenv('SECRET_ID'), os.getenv('AWS_REGION'))"
    ```
 
 5. **"ModuleNotFoundError: No module named 'babycare_rag'"**
@@ -439,6 +450,54 @@ from babycare_rag.api import BabyCareRAGAPI
 api = BabyCareRAGAPI()
 health = api.health_check()
 print(health)
+
+## 🧰 Ubuntu/EC2 运行指南（含 Ollama 工业化配置）
+
+以下以 Ubuntu 20.04+/EC2 x86_64 实例为例：
+
+1) 系统与基础工具
+- sudo apt-get update && sudo apt-get install -y build-essential git curl python3 python3-venv python3-pip
+
+2) Python 虚拟环境
+- cd ~/your_workspace && git clone https://github.com/Johnulinkng/baby_rag.git
+- cd baby_rag
+- python3 -m venv .venv
+- source .venv/bin/activate
+- pip install -e .
+
+3) OpenAI 密钥配置（二选一）
+- 方式A：AWS Secrets Manager（生产推荐）
+  - export SECRET_ID=your_secret_id
+  - export AWS_REGION=your_region
+  - 确保 secret JSON 中包含键 OPENAI_IOS_KEY
+- 方式B：本地环境变量（便捷）
+  - export OPENAI_API_KEY=sk-...
+  - export OPENAI_LLM_MODEL=gpt-4o-mini  # 可选
+
+4) 安装与配置 Ollama（工业化做法）
+- 安装：
+  - curl -fsSL https://ollama.com/install.sh | sh
+- 作为后台服务运行：
+  - sudo systemctl enable ollama
+  - sudo systemctl start ollama
+  - systemctl status ollama
+- 拉取嵌入模型：
+  - ollama pull nomic-embed-text
+- 生产建议：
+  - 仅监听内网或通过反向代理/Nginx 暴露，限制来源IP
+  - 使用 Linux 防火墙/安全组只放通必要端口
+  - 使用持久化存储目录（默认 ~/.ollama），定期备份
+
+5) 首次构建与健康检查
+- python setup_rag.py
+- python -c "from babycare_rag.api import BabyCareRAGAPI; api = BabyCareRAGAPI(); print(api.health_check())"
+
+6) 运行示例
+- 交互式CLI：python test_tools/cli_test.py
+- API 调用示例：python test_tools/api_test.py --basic
+
+小贴士：如果你把 agent 系统和 RAG 分开部署，确保两端共用同一套文档与索引目录，或通过服务化的 API 交互。
+
 ```
 
 ## 🤝 集成到团队项目
