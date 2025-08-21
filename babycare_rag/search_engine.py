@@ -123,7 +123,8 @@ class SearchEngine:
         total_docs = len(chunks)
         
         for chunk in chunks:
-            text_terms = set(re.findall(r'\b\w+\b', chunk['text'].lower()))
+            text = (chunk.get('text') or chunk.get('chunk') or '').lower()
+            text_terms = set(re.findall(r'\b\w+\b', text))
             for term in query_terms:
                 if term in text_terms:
                     doc_freq[term] += 1
@@ -133,16 +134,16 @@ class SearchEngine:
         scores = []
         
         for i, chunk in enumerate(chunks):
-            text = chunk['text'].lower()
+            text = (chunk.get('text') or chunk.get('chunk') or '').lower()
             text_terms = re.findall(r'\b\w+\b', text)
             doc_len = len(text_terms)
-            
+
             if doc_len == 0:
                 scores.append((i, 0.0))
                 continue
-            
+
             # Calculate average document length
-            avg_doc_len = sum(len(re.findall(r'\b\w+\b', c['text'].lower())) for c in chunks) / total_docs
+            avg_doc_len = sum(len(re.findall(r'\b\w+\b', (c.get('text') or c.get('chunk') or '').lower())) for c in chunks) / total_docs
             
             score = 0.0
             for term in query_terms:
