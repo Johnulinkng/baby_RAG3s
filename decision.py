@@ -2,7 +2,7 @@ from perception import PerceptionResult
 from memory import MemoryItem
 from typing import List, Optional
 from dotenv import load_dotenv
-from openai import OpenAI  # fallback if get_secret is unavailable
+from openai import OpenAI
 import os
 import re
 
@@ -16,14 +16,20 @@ except ImportError:
         print(f"[{now}] [{stage}] {msg}")
 
 load_dotenv()
-# Initialize OpenAI client via external get_secret if available
+# Initialize OpenAI client - env OPENAI_API_KEY first; fallback to AWS Secrets if configured
 try:
-    import sys as _sys
-    _sys.path.append("/home/ubuntu/ios_backend")
-    from bk_ask.config import get_secret as _get_secret
-    client = _get_secret()
-except Exception:
-    client = OpenAI()
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        try:
+            from babycare_rag.aws_secrets import get_openai_api_key_from_aws
+            api_key = get_openai_api_key_from_aws()
+        except Exception:
+            api_key = None
+    client = OpenAI(api_key=api_key) if api_key else OpenAI()
+    log("decision", "OpenAI client initialized")
+except Exception as e:
+    log("decision", f"Failed to initialize OpenAI client: {e}")
+    client = OpenAI(api_key="dummy")
 
 def generate_plan(
     perception: PerceptionResult,
@@ -54,9 +60,10 @@ Guidelines:
 - You can reference these relevant memories:
 {memory_texts}
 
-Formatting rules for common cases:
-- Temperature ranges: if you identify a range in °F (e.g., 68–72°F), return a single FINAL_ANSWER with both units: "68–72°F (20–22°C)". Avoid calling convert_temperature repeatedly for each bound.
-- Sources: if the latest tool output includes snippets like "[Source: FILENAME, ...]", include a final line: "Sources: FILENAME1; FILENAME2" with unique filenames.
+Evidence policy:
+- If the latest tool output is from search_documents and returns structured JSON with fields results[{"text", "context_tag", "source", "chunk_id"}] and sources[], you MUST extract the answer USING ONLY those evidence snippets. Do not use external knowledge.
+- If there is NO search_documents evidence available (e.g., retrieval returned no results), you MAY produce an LLM answer, but you MUST prefix it with: "[LLM-generated: no matching documents found] ". Do NOT attach any sources in that case.
+- If evidence exists, add a final line with Sources: comma-separated unique sources.
 
 Input Summary:
 - User input: "{perception.user_input}"
@@ -73,29 +80,22 @@ Input Summary:
 ✅ Examples:
 - User asks: "What’s the relationship between Cricket and Sachin Tendulkar"
   - FUNCTION_CALL: search_documents|query="relationship between Cricket and Sachin Tendulkar"
-  - [receives a detailed document]
-  - FINAL_ANSWER: Sachin Tendulkar is widely regarded as the "God of Cricket" due to his exceptional skills, longevity, and impact on the sport in India. He is the leading run-scorer in both Test and ODI cricket, and the first to score 100 centuries in international cricket. His influence extends beyond his statistics, as he is seen as a symbol of passion, perseverance, and a national icon.
-
+  - [receives structured evidence]
+  - FINAL_ANSWER: [answer synthesized strictly from evidence]\nSources: [source1, source2]
 
 IMPORTANT:
-- 🚫 Do NOT invent tools. Use only the tools listed below.
-- 📄 If the question may relate to factual knowledge, use the 'search_documents' tool to look for the answer.
-- 🧮 If the question is mathematical or needs calculation, use the appropriate math tool.
-- 🤖 If the previous tool output already contains factual information, DO NOT search again. Instead, extract the key answer and respond with: FINAL_ANSWER: [concise answer]
-- When you see "Search results:" in the input, this means search has been completed. Extract the most relevant answer from the results and provide a FINAL_ANSWER.
-- For temperature questions, look for temperature ranges like "16–29°C (60–85°F)" or similar patterns in the search results.
+- Do NOT invent tools. Use only the tools listed below.
+- If the question may relate to factual knowledge, use the 'search_documents' tool to look for the answer.
+- If the question is mathematical or needs calculation, use the appropriate math tool.
+- If the previous tool output already contains factual information, DO NOT search again. Instead, extract the key answer and respond with full sentence from it.
 - Keep FINAL_ANSWER concise and direct - just the key information requested.
 - Only repeat `search_documents` if the last result was completely irrelevant or empty.
-- ❌ Do NOT repeat function calls with the same parameters.
-- ❌ Do NOT output unstructured responses.
-- 🧠 Think before each step. Verify intermediate results mentally before proceeding.
-- 💥 If unsure or no tool fits, skip to FINAL_ANSWER: [I could not find specific information about this topic]
-- ✅ You have only 3 attempts. Final attempt must be FINAL_ANSWER
-- 🔍 When analyzing search results, look for specific information patterns:
-  * Temperature ranges (e.g., "16–29°C", "60–85°F", "Room temperature")
-  * Specific recommendations from medical organizations (AAP, etc.)
-  * Safety guidelines and best practices
-  * Age-specific information for babies and children
+- Do NOT repeat function calls with the same parameters.
+- Do NOT output unstructured responses.
+- Think before each step. Verify intermediate results mentally before proceeding.
+- If unsure or no tool fits, skip to FINAL_ANSWER: [I could not find specific information about this topic]
+- You have only 3 attempts. Final attempt must be FINAL_ANSWER
+- When analyzing search results, look for specific information patterns aligned with baby care contexts.
 """
 
     try:
@@ -112,13 +112,15 @@ IMPORTANT:
                 log("plan", f"Found structured response: {line.strip()}")
                 return line.strip()
 
-        # If no structured response found, but contains temperature info (robust matching), format it
-        temp_pattern = r"((?:6\s*8)\s*(?:-|–|~|to)\s*(?:7\s*2)\s*(?:°\s*)?F)(?:\s*(?:\(|\s)\s*((?:2\s*0)\s*(?:-|–|~|to)\s*(?:2\s*2)\s*(?:°\s*)?C)\)?)?"
-        if re.search(temp_pattern, raw, flags=re.IGNORECASE):
-            log("plan", "Found temperature in unstructured response, formatting (regex match)...")
-            return f"FINAL_ANSWER: {raw.strip()}"
+        # If no structured response found, avoid ungrounded FINAL_ANSWER for knowledge-seeking intents.
+        # If we have not yet called search_documents in this turn history, force a search call.
+        has_search = any(getattr(m, "tool_name", None) == "search_documents" for m in memory_items)
+        knowledge_intents = {"factoid", "numerical_range", "advice"}
+        if not has_search and (perception.intent in knowledge_intents or perception.intent is None):
+            q = perception.user_input.replace("|", " ")
+            return f"FUNCTION_CALL: search_documents|query=\"{q}\""
 
-        # Fallback: wrap any non-structured raw as FINAL_ANSWER so the agent can converge
+        # Otherwise, last resort: wrap as FINAL_ANSWER (e.g., after search results were provided)
         return f"FINAL_ANSWER: {raw.strip()}"
 
     except Exception as e:

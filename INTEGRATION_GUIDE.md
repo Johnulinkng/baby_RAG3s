@@ -5,9 +5,7 @@ This guide provides detailed instructions for integrating the BabyCare RAG syste
 ## 📋 Prerequisites
 
 1. **Python 3.10+**
-2. **Google Gemini API Key** - Get from [Google AI Studio](https://makersuite.google.com/app/apikey)
-3. **Ollama Server** - Download from [ollama.ai](https://ollama.ai/)
-4. **Embedding Model** - Run `ollama pull nomic-embed-text`
+2. **OpenAI API Key** 或配置 **AWS Secrets Manager**（SECRET_ID/AWS_REGION）
 
 ## 🚀 Quick Setup
 
@@ -32,19 +30,20 @@ python setup_rag.py
 cp env-template .env
 
 # Edit .env file
-GEMINI_API_KEY=your_actual_api_key_here
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_EMBED_MODEL=nomic-embed-text
+# Option A: OpenAI
+OPENAI_API_KEY=sk-...
+OPENAI_LLM_MODEL=gpt-4o-mini
+OPENAI_EMBED_MODEL=text-embedding-3-small
+# Option B: AWS Secrets
+SECRET_ID=Opean_AI_KEY_IOSAPP
+AWS_REGION=us-east-2
 ```
 
-### 3. Start Ollama Server
+### 3. Initialize Index & Health Check
 
 ```bash
-# Start Ollama server
-ollama serve
-
-# In another terminal, pull the embedding model
-ollama pull nomic-embed-text
+python setup_rag.py
+python -c "from babycare_rag.api import BabyCareRAGAPI; api = BabyCareRAGAPI(); print(api.health_check())"
 ```
 
 ### 4. Test the Setup
@@ -176,19 +175,17 @@ from babycare_rag import RAGConfig
 
 config = RAGConfig(
     # LLM Settings
-    gemini_api_key="your-key",
-    llm_model="gemini-1.5-flash",
-    
+    llm_model="gpt-4o-mini",
+
     # Embedding Settings
-    ollama_base_url="http://localhost:11434",
-    embed_model="nomic-embed-text",
-    
+    embed_model="text-embedding-3-small",
+
     # RAG Parameters
     max_steps=5,
     top_k=3,
     chunk_size=1000,
     chunk_overlap=200,
-    
+
     # Search Settings
     search_top_k=20,
     bm25_weight=0.3,
@@ -623,39 +620,27 @@ services:
     ports:
       - "5000:5000"
     environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - OLLAMA_BASE_URL=http://ollama:11434
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_LLM_MODEL=${OPENAI_LLM_MODEL:-gpt-4o-mini}
+      - OPENAI_EMBED_MODEL=${OPENAI_EMBED_MODEL:-text-embedding-3-small}
+      - SECRET_ID=${SECRET_ID}
+      - AWS_REGION=${AWS_REGION}
     volumes:
       - ./documents:/app/documents
       - ./faiss_index:/app/faiss_index
-    depends_on:
-      - ollama
-
-  ollama:
-    image: ollama/ollama
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-
-volumes:
-  ollama_data:
 ```
 
 ## 🆘 Troubleshooting
 
 ### Common Issues
 
-1. **"GEMINI_API_KEY not found"**
-   - Check your .env file
-   - Ensure the API key is valid
+1. **"OpenAI API key not found"**
+   - Check env: `echo $OPENAI_API_KEY` or PowerShell: `$env:OPENAI_API_KEY`
+   - Or check AWS Secrets env: `echo $SECRET_ID $AWS_REGION`
 
-2. **"Cannot connect to Ollama"**
-   - Start Ollama: `ollama serve`
-   - Check URL: `http://localhost:11434`
-
-3. **"Embedding model not found"**
-   - Pull model: `ollama pull nomic-embed-text`
+2. **"No documents found"**
+   - Add docs into `documents/`
+   - Run `python setup_rag.py` to build index
 
 4. **"No documents found"**
    - Add documents to the `documents/` folder

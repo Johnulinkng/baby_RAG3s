@@ -8,29 +8,23 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-
 class RAGConfig(BaseModel):
     """Configuration for the RAG system."""
     
     # API Keys and URLs
-    gemini_api_key: str = Field(
-        default_factory=lambda: os.getenv("GEMINI_API_KEY", ""),
-        description="Google Gemini API key for LLM"
+    openai_api_key: str = Field(
+        default_factory=lambda: os.getenv("OPENAI_API_KEY", ""),
+        description="OpenAI API key for LLM/Embeddings"
     )
-    
-    ollama_base_url: str = Field(
-        default_factory=lambda: os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
-        description="Ollama server base URL for embeddings"
-    )
-    
-    # Model Configuration
+
+    # Embedding/Model Configuration
     embed_model: str = Field(
-        default_factory=lambda: os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text"),
+        default_factory=lambda: os.getenv("OPENAI_EMBED_MODEL", "text-embedding-3-small"),
         description="Embedding model name"
     )
-    
+
     llm_model: str = Field(
-        default="gemini-1.5-flash",
+        default_factory=lambda: os.getenv("OPENAI_LLM_MODEL", "gpt-4o-mini"),
         description="LLM model name for generation"
     )
     
@@ -84,12 +78,13 @@ class RAGConfig(BaseModel):
     
     def validate_config(self) -> bool:
         """Validate the configuration."""
-        if not self.gemini_api_key:
-            raise ValueError("GEMINI_API_KEY is required")
-        
-        if self.bm25_weight + self.vector_weight != 1.0:
+        # Allow either OPENAI_API_KEY env or AWS Secrets (SECRET_ID + AWS_REGION)
+        if not (self.openai_api_key or (os.getenv("SECRET_ID") and os.getenv("AWS_REGION"))):
+            raise ValueError("OpenAI credentials missing: set OPENAI_API_KEY or configure SECRET_ID and AWS_REGION")
+
+        if abs((self.bm25_weight + self.vector_weight) - 1.0) > 1e-6:
             raise ValueError("BM25 and vector weights must sum to 1.0")
-        
+
         return True
     
     @classmethod

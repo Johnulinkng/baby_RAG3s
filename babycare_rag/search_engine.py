@@ -21,7 +21,6 @@ class SearchEngine:
     def __init__(self, config: RAGConfig):
         self.config = config
         self.index_dir = Path(config.index_dir)
-        self.embedding_url = f"{config.ollama_base_url.rstrip('/')}/api/embeddings"
         self.embed_model = config.embed_model
         
         # Load synonyms for query expansion
@@ -60,7 +59,35 @@ class SearchEngine:
             metadata_file = self.index_dir / "metadata.json"
 
             if index_file.exists() and metadata_file.exists():
-                self.faiss_index = faiss.read_index(str(index_file))
+                try:
+                    # Add more robust FAISS index loading with version check
+                    print(f"Attempting to load FAISS index from {index_file}")
+                    self.faiss_index = faiss.read_index(str(index_file))
+
+                    # Verify the index is valid
+                    if self.faiss_index is None:
+                        raise ValueError("FAISS index loaded as None")
+
+                    print(f"FAISS index loaded successfully with {self.faiss_index.ntotal} vectors")
+
+                except Exception as faiss_error:
+                    print(f"FAISS index loading failed: {faiss_error}")
+                    print("This might be due to version incompatibility or corrupted index.")
+                    print("Removing corrupted index files and will rebuild...")
+
+                    # Remove corrupted files
+                    try:
+                        index_file.unlink(missing_ok=True)
+                        metadata_file.unlink(missing_ok=True)
+                        print("Corrupted index files removed.")
+                    except Exception as cleanup_error:
+                        print(f"Warning: Could not remove corrupted files: {cleanup_error}")
+
+                    self.faiss_index = None
+                    self.metadata = None
+                    return
+
+                # Load metadata only if FAISS index loaded successfully
                 with open(metadata_file, 'r', encoding='utf-8') as f:
                     existing_data = json.load(f)
 
@@ -74,25 +101,44 @@ class SearchEngine:
                 print(f"Loaded index with {len(self.metadata.get('chunks', []))} chunks")
             else:
                 print("No existing index found. Will create new index when documents are added.")
+                self.faiss_index = None
+                self.metadata = None
 
         except Exception as e:
             print(f"Error loading index: {e}")
+            print("Resetting to clean state...")
             self.faiss_index = None
             self.metadata = None
     
     def _get_embedding(self, text: str) -> np.ndarray:
-        """Get embedding for text using Ollama."""
+        """Get embedding for text using OpenAI embeddings API with timeout and retry."""
         try:
-            response = requests.post(
-                self.embedding_url,
-                json={"model": self.embed_model, "prompt": text},
-                timeout=30
-            )
-            response.raise_for_status()
-            embedding = response.json()["embedding"]
-            return np.array(embedding, dtype=np.float32)
+            # Lazy import to avoid hard dependency at module import time
+            from openai import OpenAI
+            import time
+
+            # Initialize client with timeout
+            client = OpenAI(timeout=30.0)  # 30 second timeout
+
+            # Retry logic for network issues
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    resp = client.embeddings.create(
+                        model=self.embed_model,
+                        input=text,
+                        timeout=30
+                    )
+                    embedding = resp.data[0].embedding
+                    return np.array(embedding, dtype=np.float32)
+                except Exception as retry_e:
+                    if attempt == max_retries - 1:
+                        raise retry_e
+                    print(f"Embedding attempt {attempt + 1} failed: {retry_e}, retrying...")
+                    time.sleep(1)  # Brief delay before retry
+
         except Exception as e:
-            print(f"Error getting embedding: {e}")
+            print(f"Error getting embedding after retries: {e}")
             raise
     
     def _expand_query_with_synonyms(self, query: str) -> str:
@@ -229,13 +275,62 @@ class SearchEngine:
                 combined_results = vector_results
             else:
                 return []
-            
+
+            # Light context-aware reranker
+            def _context_tag(text: str) -> str:
+                tl = text.lower()
+                if any(w in tl for w in ["bath", "bathtub", "tub", "water temperature", "shower"]):
+                    return "bath"
+                if any(w in tl for w in ["fever", "temperature of baby", "high temperature", "doctor", "sick"]):
+                    return "fever"
+                if any(w in tl for w in ["room", "nursery", "sleep", "crib", "bedroom"]):
+                    return "room"
+                return "general"
+
+            ql = query.lower()
+            query_pref = None
+            if any(w in ql for w in ["bath", "bathtub", "tub", "water"]):
+                query_pref = "bath"
+            elif any(w in ql for w in ["fever", "sick", "ill", "temperature of baby"]):
+                query_pref = "fever"
+            elif any(w in ql for w in ["room", "sleep", "nursery", "bedroom"]):
+                query_pref = "room"
+
+            chunks = self.metadata['chunks']
+            reranked = []
+            for rank_pos, item in enumerate(combined_results):
+                idx = item[0] if isinstance(item, (list, tuple)) else item
+                if idx >= len(chunks):
+                    continue
+                text = (chunks[idx].get('text') or chunks[idx].get('chunk') or '')
+                tag = _context_tag(text)
+                base = 1.0 / (1.0 + rank_pos)
+                boost = 0.3 if (query_pref and tag == query_pref) else 0.0
+                reranked.append((idx, base + boost, tag))
+            reranked.sort(key=lambda x: x[1], reverse=True)
+
+            # Debug print ranked order for troubleshooting with content preview
+            try:
+                dbg = []
+                for (i, s, t) in reranked[:top_k]:
+                    chunk_text = chunks[i].get('text') or chunks[i].get('chunk', '')
+                    preview = (chunk_text[:100] + '...') if len(chunk_text) > 100 else chunk_text
+                    dbg.append({
+                        'idx': i,
+                        'score': round(s, 4),
+                        'tag': t,
+                        'source': chunks[i].get('doc_id', chunks[i].get('doc', '')),
+                        'content_preview': preview
+                    })
+                print(f"RANKED Top: {dbg}")
+            except Exception:
+                pass
+
             # Convert to SearchResult objects
             search_results = []
-            chunks = self.metadata['chunks']
             documents = self.metadata.get('documents', {})
 
-            for idx, score in combined_results[:top_k]:
+            for idx, adj_score, tag in reranked[:top_k]:
                 if idx < len(chunks):
                     chunk = chunks[idx]
 
@@ -249,20 +344,23 @@ class SearchEngine:
                         doc_info = documents[doc_id]
                         source_name = doc_info.get('title', source_name)
 
+                    meta = {
+                        'doc_id': doc_id,
+                        'chunk_id': chunk.get('chunk_id'),
+                        'file_path': documents.get(doc_id, {}).get('file_path'),
+                        'context_tag': tag
+                    }
+
                     search_results.append(SearchResult(
                         text=chunk_text,
                         source=source_name,
-                        score=score,
+                        score=adj_score,
                         chunk_id=chunk.get('id') or chunk.get('chunk_id'),
-                        metadata={
-                            'doc_id': doc_id,
-                            'chunk_id': chunk.get('chunk_id'),
-                            'file_path': documents.get(doc_id, {}).get('file_path')
-                        }
+                        metadata=meta
                     ))
-            
+
             return search_results
-            
+
         except Exception as e:
             print(f"Error in search: {e}")
             return []

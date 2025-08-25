@@ -25,20 +25,21 @@ def check_environment():
     else:
         print("✅ Python version OK")
     
-    # Check required environment variables
-    gemini_key = os.getenv("GEMINI_API_KEY")
-    if not gemini_key:
-        issues.append("GEMINI_API_KEY not set in environment")
+    # Check OpenAI credentials (env or AWS Secrets)
+    openai_key = os.getenv("OPENAI_API_KEY")
+    secret_id = os.getenv("SECRET_ID")
+    aws_region = os.getenv("AWS_REGION")
+    if not (openai_key or (secret_id and aws_region)):
+        issues.append("OpenAI credentials missing: set OPENAI_API_KEY or configure SECRET_ID and AWS_REGION")
     else:
-        print("✅ GEMINI_API_KEY found")
-    
-    # Check optional environment variables
-    ollama_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-    print(f"ℹ️  Ollama URL: {ollama_url}")
-    
-    embed_model = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
+        print("✅ OpenAI credentials configured (env or AWS Secrets)")
+
+    # Show model choices
+    embed_model = os.getenv("OPENAI_EMBED_MODEL", "text-embedding-3-small")
+    llm_model = os.getenv("OPENAI_LLM_MODEL", "gpt-4o-mini")
     print(f"ℹ️  Embedding model: {embed_model}")
-    
+    print(f"ℹ️  LLM model: {llm_model}")
+
     return issues
 
 def check_dependencies():
@@ -47,7 +48,7 @@ def check_dependencies():
     
     required_packages = [
         "faiss",
-        "google.genai",
+        "openai",
         "markitdown",
         "mcp",
         "PIL",
@@ -66,8 +67,6 @@ def check_dependencies():
         try:
             if package == "PIL":
                 import PIL
-            elif package == "google.genai":
-                import google.genai
             elif package == "dotenv":
                 import dotenv
             else:
@@ -179,21 +178,28 @@ def create_env_file():
         import shutil
         shutil.copy(template_file, env_file)
         print("✅ .env file created from template")
-        print("   Please edit .env and add your GEMINI_API_KEY")
+        print("   Please edit .env and add your OPENAI_API_KEY or configure SECRET_ID/AWS_REGION")
     else:
         # Create basic .env file
         env_content = """# BabyCare RAG Configuration
 
-# Required: Google Gemini API Key
-GEMINI_API_KEY=your_gemini_api_key_here
+# Option A: OpenAI direct
+OPENAI_API_KEY=sk-...
+OPENAI_LLM_MODEL=gpt-4o-mini
+OPENAI_EMBED_MODEL=text-embedding-3-small
 
-# Optional: Ollama Configuration
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_EMBED_MODEL=nomic-embed-text
+# Option B: AWS Secrets Manager (production)
+# SECRET_ID corresponds to your secret name (e.g., Opean_AI_KEY_IOSAPP)
+SECRET_ID=Opean_AI_KEY_IOSAPP
+AWS_REGION=us-east-2
+
+# Optional app tables
+MSG_TABLE_NAME=ChatMessages
+STATE_TABLE_NAME=ActiveAgentState
 """
         env_file.write_text(env_content)
         print("✅ Basic .env file created")
-        print("   Please edit .env and add your GEMINI_API_KEY")
+        print("   Please edit .env and add your OPENAI_API_KEY or configure SECRET_ID/AWS_REGION")
 
 def main():
     """Main setup function."""
@@ -211,9 +217,6 @@ def main():
     
     # Create directories
     create_directories()
-    
-    # Test Ollama connection
-    ollama_ok = test_ollama_connection()
     
     # Test RAG system
     rag_ok = test_rag_system()
@@ -233,19 +236,10 @@ def main():
             print(f"   - {dep}")
         print("   Run: pip install -e .")
     
-    if not ollama_ok:
-        print("⚠️  Ollama Issues:")
-        print("   - Install Ollama: https://ollama.ai/")
-        print("   - Start server: ollama serve")
-        print("   - Pull model: ollama pull nomic-embed-text")
+
     
     if env_issues or missing_deps:
         print("\n❌ Setup incomplete. Please fix the issues above.")
-        return False
-    
-    if not ollama_ok:
-        print("\n⚠️  Setup mostly complete, but Ollama needs attention.")
-        print("   The system will work for document management but not for embeddings.")
         return False
     
     if rag_ok:

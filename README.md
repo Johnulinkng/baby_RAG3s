@@ -58,8 +58,7 @@ Agent循环:
 ### 环境要求
 
 - **Python 3.10+**
-- **OpenAI API Key**（或使用 AWS Secrets Manager + get_secret 自动读取）
-- **Ollama服务器** - [下载地址](https://ollama.ai/)
+- **OpenAI API Key**（或使用 AWS Secrets Manager 自动读取）
 - **Git** - 用于克隆仓库
 
 ### 安装步骤
@@ -85,12 +84,7 @@ pip install -e .
 cp env-template .env
 # 编辑 .env 文件，添加你的API密钥
 
-# 5. 启动Ollama服务（Ubuntu/EC2 环境工业化安装示例见下）
-ollama serve
-# 在另一个终端中拉取嵌入模型
-ollama pull nomic-embed-text
-
-# 6. 运行设置脚本（首次构建索引）
+# 5. 运行设置脚本（首次构建索引与检查）
 python setup_rag.py
 
 # 7. 验证安装
@@ -101,18 +95,15 @@ python -c "from babycare_rag.api import BabyCareRAGAPI; print('安装成功！')
 
 ```bash
 # LLM配置（两种方式二选一）
-# A) 使用 AWS Secrets Manager + get_secret（推荐生产）
-SECRET_ID=your_aws_secretsmanager_secret_id
-AWS_REGION=your_aws_region
-# 你的 Secret JSON 中需包含键：OPENAI_IOS_KEY
+# A) 使用 AWS Secrets Manager（推荐生产）
+SECRET_ID=Opean_AI_KEY_IOSAPP
+AWS_REGION=us-east-2
+# 你的 Secret JSON 中需包含键：OPENAI_API_KEY 或 OPENAI_IOS_KEY
 
-# B) 本地/临时：直接设置OpenAI环境变量
+# B) 本地/临时：直接设置 OpenAI 环境变量
 OPENAI_API_KEY=sk-...               # OpenAI 密钥
 OPENAI_LLM_MODEL=gpt-4o-mini        # 可选，默认 gpt-4o-mini
-
-# 嵌入模型配置（Ollama）
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_EMBED_MODEL=nomic-embed-text
+OPENAI_EMBED_MODEL=text-embedding-3-small  # 可选，默认 text-embedding-3-small
 
 # RAG参数 (可选)
 RAG_MAX_STEPS=3
@@ -292,33 +283,13 @@ print(api.health_check())
 ```
 
 
-### 双重搜索架构说明
+### 搜索架构说明
 
-本项目采用了**双重搜索架构**，这是为了支持不同的使用场景：
+当前实现统一采用单路径检索（SearchEngine），避免重复检索：
+- API/CLI/Agent 使用相同的混合检索（BM25 + FAISS + RRF）
+- sources 与 search_results 均来自同一检索结果，保证一致性与性能
 
-#### 1. MCP工具搜索 (`math_mcp_embeddings.py`)
-```python
-@mcp.tool()
-def search_documents(query: str) -> list[str]:
-    """Agent系统专用的搜索接口"""
-    # BM25 + 向量搜索 + RRF融合
-    # 返回格式化的字符串列表
-    # 特殊处理温度等特定信息
-```
-
-#### 2. RAG模块搜索 (`babycare_rag/search_engine.py`)
-```python
-def search(self, query: str, top_k: int) -> List[SearchResult]:
-    """API和CLI专用的搜索引擎"""
-    # 相同的BM25 + 向量搜索 + RRF算法
-    # 返回结构化的SearchResult对象
-    # 完整的文档管理功能
-```
-
-**为什么需要两套？**
-- **Agent系统**: 需要简单的字符串格式，便于LLM处理
-- **API系统**: 需要结构化数据，便于应用集成
-- **技术栈**: 两者使用相同的核心算法，只是接口不同
+如需为 Agent 保留字符串化展示，可在返回前对 SearchResult 做简单格式化。
 
 ### 检索算法详解
 
@@ -335,7 +306,7 @@ b = 0.75  # 文档长度归一化参数
 #### 向量搜索实现
 ```python
 # 使用FAISS进行高效向量搜索
-query_embedding = get_embedding(query)  # Ollama nomic-embed-text
+query_embedding = get_embedding(query)  # OpenAI Embeddings: text-embedding-3-small
 distances, indices = faiss_index.search(query_embedding, top_k)
 similarity = 1.0 / (1.0 + distance)  # 距离转相似度
 ```
@@ -407,21 +378,12 @@ graph TD
    ```
 
 2. **"No response generated"**
-   ```bash
-   # 检查搜索结果
-   python -c "
-   from math_mcp_embeddings import search_documents
-   print(search_documents('your query'))
-   "
-   ```
+   - 请检查索引与文档是否就绪：`python setup_rag.py`
+   - 或调减 max_steps/简化问题重试
 
-3. **"Cannot connect to Ollama"**
-   ```bash
-   # 启动Ollama服务
-   ollama serve
-   # 检查服务状态
-   curl http://localhost:11434/api/tags
-   ```
+3. **“OpenAI 限流/认证失败”**
+   - 检查 OPENAI_API_KEY 是否有效
+   - 或检查 SECRET_ID/AWS_REGION 与 IAM 权限
 
 4. **"OpenAI API key not found"**
    ```bash
@@ -451,7 +413,7 @@ api = BabyCareRAGAPI()
 health = api.health_check()
 print(health)
 
-## 🧰 Ubuntu/EC2 运行指南（含 Ollama 工业化配置）
+## 🧰 Ubuntu/EC2 运行指南（OpenAI 方案）
 
 以下以 Ubuntu 20.04+/EC2 x86_64 实例为例：
 
@@ -467,30 +429,21 @@ print(health)
 
 3) OpenAI 密钥配置（二选一）
 - 方式A：AWS Secrets Manager（生产推荐）
-  - export SECRET_ID=your_secret_id
-  - export AWS_REGION=your_region
-  - 确保 secret JSON 中包含键 OPENAI_IOS_KEY
+  - export SECRET_ID=Opean_AI_KEY_IOSAPP
+  - export AWS_REGION=us-east-2
+  - 确保 secret JSON 中包含键 OPENAI_API_KEY 或 OPENAI_IOS_KEY
 - 方式B：本地环境变量（便捷）
   - export OPENAI_API_KEY=sk-...
   - export OPENAI_LLM_MODEL=gpt-4o-mini  # 可选
+  - export OPENAI_EMBED_MODEL=text-embedding-3-small  # 可选
 
-4) 安装与配置 Ollama（工业化做法）
-- 安装：
-  - curl -fsSL https://ollama.com/install.sh | sh
-- 作为后台服务运行：
-  - sudo systemctl enable ollama
-  - sudo systemctl start ollama
-  - systemctl status ollama
-- 拉取嵌入模型：
-  - ollama pull nomic-embed-text
-- 生产建议：
-  - 仅监听内网或通过反向代理/Nginx 暴露，限制来源IP
-  - 使用 Linux 防火墙/安全组只放通必要端口
-  - 使用持久化存储目录（默认 ~/.ollama），定期备份
-
-5) 首次构建与健康检查
+4) 首次构建与健康检查
 - python setup_rag.py
 - python -c "from babycare_rag.api import BabyCareRAGAPI; api = BabyCareRAGAPI(); print(api.health_check())"
+
+5) 性能小贴士
+- 首次查询包含模型/网络等冷启动，请忽略首包延迟
+- 多次查询取均值可更准确反映时延
 
 6) 运行示例
 - 交互式CLI：python test_tools/cli_test.py

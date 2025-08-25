@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 import os
 from dotenv import load_dotenv
-from openai import OpenAI  # fallback if get_secret is unavailable
+from openai import OpenAI
 import re
 from typing import Dict
 
@@ -17,14 +17,20 @@ except ImportError:
 
 load_dotenv()
 
-# Initialize OpenAI client via external get_secret if available
+# Initialize OpenAI client - env OPENAI_API_KEY first; fallback to AWS Secrets if configured
 try:
-    import sys as _sys
-    _sys.path.append("/home/ubuntu/ios_backend")
-    from bk_ask.config import get_secret as _get_secret
-    client = _get_secret()
-except Exception:
-    client = OpenAI()
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        try:
+            from babycare_rag.aws_secrets import get_openai_api_key_from_aws
+            api_key = get_openai_api_key_from_aws()
+        except Exception:
+            api_key = None
+    client = OpenAI(api_key=api_key) if api_key else OpenAI()
+    log("perception", "OpenAI client initialized")
+except Exception as e:
+    log("perception", f"Failed to initialize OpenAI client: {e}")
+    client = OpenAI(api_key="dummy")
 
 # Lightweight intent patterns (regex)
 INTENT_PATTERNS: Dict[str, list[str]] = {

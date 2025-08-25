@@ -1,6 +1,7 @@
 """Core BabyCare RAG system implementation."""
 
 import os
+import time
 import asyncio
 import uuid
 from pathlib import Path
@@ -91,105 +92,109 @@ class BabyCareRAG:
         return self.search_engine.search(query, top_k)
     
     def query(self, question: str, max_steps: int = 5) -> RAGResponse:
-        """Process a query and generate a response using the original agent system."""
+        """Process a query using evidence-based template (consistent with Agent path)."""
         try:
-            # Import the original agent system
+            # Import evidence templates from agent
             import sys
-            import re
             sys.path.append(str(Path(__file__).parent.parent))
+            from agent import (EVIDENCE_BASED_ANSWER_SYSTEM_PROMPT, EVIDENCE_BASED_ANSWER_USER_PROMPT,
+                             GENERAL_ANSWER_SYSTEM_PROMPT, GENERAL_ANSWER_USER_PROMPT)
+            from openai import OpenAI
 
-            from agent import main as agent_main
-
-            # Run the agent asynchronously
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+            # Initialize OpenAI client
             try:
-                answer = loop.run_until_complete(agent_main(question))
+                api_key = os.getenv("OPENAI_API_KEY")
+                if not api_key:
+                    try:
+                        from babycare_rag.aws_secrets import get_openai_api_key_from_aws
+                        api_key = get_openai_api_key_from_aws()
+                    except Exception:
+                        api_key = None
+                openai_client = OpenAI(api_key=api_key) if api_key else OpenAI()
+            except Exception:
+                openai_client = OpenAI()
 
-                # Get search results for sources using the original search function
-                from math_mcp_embeddings import search_documents as original_search
-                search_result_texts = original_search(question)
+            # 1) Run retrieval first (single path for CLI/API)
+            t0 = time.perf_counter()
+            search_results = self.search_documents(question, self.config.top_k)
+            t1 = time.perf_counter()
+            sources = []
+            for sr in search_results:
+                src = (sr.source or "").strip()
+                if src and src not in sources:
+                    sources.append(src)
 
-                # Extract unique sources from search results
-                sources = []
-                for result_text in search_result_texts:
-                    # Extract source from [Source: filename, ID: chunk_id] pattern
-                    source_match = re.search(r'\[Source: ([^,]+),', result_text)
-                    if source_match:
-                        source = source_match.group(1).strip()
-                        if source not in sources:
-                            sources.append(source)
+            # 2) Build evidence block from search results
+            evidence_lines = []
+            for sr in search_results[:10]:  # limit to top 10 for evidence
+                src = sr.source or ''
+                txt = sr.text or ''
+                snippet = txt[:400] + ('...' if len(txt) > 400 else '')
+                evidence_lines.append(f"[Source: {src}]\n{snippet}")
+            evidence = "\n\n".join(evidence_lines) if evidence_lines else ""
 
-                # Clean the answer and add sources in parentheses
-                clean_answer = answer.strip('[]').strip()
+            # Debug: print evidence content for troubleshooting
+            print(f"[DEBUG] Evidence block length: {len(evidence)}")
+            if evidence:
+                print(f"[DEBUG] Evidence preview: {evidence[:500]}...")
+            else:
+                print("[DEBUG] No evidence found from search results")
 
-                # Handle the case where answer might be "No response generated." or similar
-                if clean_answer in ["No response generated.", "No response generated", "", "I was unable to find a complete answer to your question based on the available information."]:
-                    # Try to extract information from search results as fallback
-                    if search_result_texts:
-                        # Look for temperature information in search results - broader pattern
-                        temp_patterns = [
-                            r"Room temperature\s+(\d+)(?:\s*[-–~to]\s*(\d+))?\s*°?\s*C\s*\((\d+)(?:\s*[-–~to]\s*(\d+))?\s*°?\s*F\)",
-                            r"(\d+)(?:\s*[-–~to]\s*(\d+))?\s*°?\s*C\s*\((\d+)(?:\s*[-–~to]\s*(\d+))?\s*°?\s*F\)",
-                            r"temperature.*?(\d+)(?:\s*[-–~to]\s*(\d+))?\s*°?\s*C",
-                            r"temperature.*?(\d+)(?:\s*[-–~to]\s*(\d+))?\s*°?\s*F"
-                        ]
+            # 3) Choose appropriate template based on evidence availability
+            if evidence.strip():
+                # Use shared evidence-based prompt from agent module
+                system_prompt = EVIDENCE_BASED_ANSWER_SYSTEM_PROMPT
+                user_prompt = EVIDENCE_BASED_ANSWER_USER_PROMPT.format(query=question, evidence=evidence)
+            else:
+                # Use general knowledge template when no evidence is found
+                system_prompt = GENERAL_ANSWER_SYSTEM_PROMPT
+                user_prompt = GENERAL_ANSWER_USER_PROMPT.format(query=question)
 
-                        for result_text in search_result_texts:
-                            for pattern in temp_patterns:
-                                match = re.search(pattern, result_text, flags=re.IGNORECASE)
-                                if match:
-                                    # Extract the temperature range
-                                    if "Room temperature" in result_text and "16" in result_text and "29" in result_text:
-                                        clean_answer = "16–29°C (60–85°F)"
-                                        break
-                                    elif match.groups():
-                                        # Try to construct a meaningful temperature answer
-                                        groups = [g for g in match.groups() if g]
-                                        if len(groups) >= 2:
-                                            clean_answer = f"{groups[0]}–{groups[1]}°C"
-                                        else:
-                                            clean_answer = f"{groups[0]}°C"
-                                        break
-                            if clean_answer not in ["No response generated.", "No response generated", "", "I was unable to find a complete answer to your question based on the available information."]:
-                                break
+            t2 = time.perf_counter()
+            response = openai_client.chat.completions.create(
+                model=os.getenv("OPENAI_LLM_MODEL", "gpt-4o-mini"),
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=0.2,
+                timeout=30  # Add timeout to prevent hanging
+            )
+            t3 = time.perf_counter()
+            answer_text = (response.choices[0].message.content or "").strip()
 
-                        # If still no answer, provide a generic response
-                        if clean_answer in ["No response generated.", "No response generated", "", "I was unable to find a complete answer to your question based on the available information."]:
-                            clean_answer = "I found some relevant information but could not extract a specific answer. Please check the source documents for details."
+            # 4) Ensure sources formatting if evidence existed
+            if sources and "Sources:" not in answer_text:
+                answer_text = f"{answer_text}\n\nSources: {', '.join(sources)}"
 
-                if sources:
-                    source_text = "(" + ", ".join(sources) + ")"
-                    final_answer = f"{clean_answer} {source_text}"
-                else:
-                    final_answer = clean_answer
+            # 5) Determine confidence based on evidence availability
+            confidence = 0.8 if search_results else 0.6
+            processing_steps = [
+                "Analyzed user question",
+                f"Retrieved documents in {round((t1 - t0) * 1000)} ms" if search_results else "No relevant documents found",
+                f"LLM generation in {round((t3 - t2) * 1000)} ms",
+                f"Total time {round((t3 - t0) * 1000)} ms"
+            ]
 
-                # Get search results for the response object
-                search_results = self.search_documents(question, self.config.top_k)
-
-                return RAGResponse(
-                    answer=final_answer,
-                    sources=sources,
-                    confidence=0.8,  # Default confidence
-                    processing_steps=[
-                        "Analyzed user question",
-                        "Retrieved relevant documents",
-                        "Generated response using agent system"
-                    ],
-                    search_results=search_results
-                )
-            finally:
-                loop.close()
+            return RAGResponse(
+                answer=answer_text,
+                sources=sources,
+                confidence=confidence,
+                processing_steps=processing_steps,
+                search_results=search_results
+            )
 
         except Exception as e:
             print(f"Error processing query: {e}")
+            import traceback
+            traceback.print_exc()
             return RAGResponse(
                 answer=f"Sorry, I encountered an error processing your question: {str(e)}",
                 sources=[],
                 confidence=0.0,
                 processing_steps=["Error occurred during processing"]
             )
-    
+
     def update_config(self, config: RAGConfig) -> bool:
         """Update the system configuration."""
         try:
@@ -217,8 +222,23 @@ class BabyCareRAG:
         """Get system statistics."""
         try:
             documents = self.list_documents()
-            total_chunks = sum(doc.chunk_count for doc in documents)
-            
+            # Prefer counting chunks from metadata if available to reflect actual index content
+            total_chunks = 0
+            try:
+                import json
+                meta_path = Path(self.config.index_dir) / "metadata.json"
+                if meta_path.exists():
+                    with open(meta_path, 'r', encoding='utf-8') as f:
+                        md = json.load(f)
+                        if isinstance(md, dict) and 'chunks' in md:
+                            total_chunks = len(md['chunks'])
+                        elif isinstance(md, list):
+                            total_chunks = len(md)
+                if total_chunks == 0:
+                    total_chunks = sum(doc.chunk_count for doc in documents)
+            except Exception:
+                total_chunks = sum(doc.chunk_count for doc in documents)
+
             # Calculate storage used
             storage_used = 0
             index_dir = Path(self.config.index_dir)
@@ -226,11 +246,11 @@ class BabyCareRAG:
                 for file_path in index_dir.rglob('*'):
                     if file_path.is_file():
                         storage_used += file_path.stat().st_size
-            
+
             # Get index size
             index_file = index_dir / "index.bin"
             index_size = index_file.stat().st_size if index_file.exists() else 0
-            
+
             return SystemStats(
                 total_documents=len(documents),
                 total_chunks=total_chunks,

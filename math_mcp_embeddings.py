@@ -22,11 +22,37 @@ from dotenv import load_dotenv
 
 mcp = FastMCP("Calculator")
 
-# Load env and allow configurable embedding endpoint/model
+# Simple in-process cache for FAISS index and metadata
+_INDEX_OBJ = None
+_META_OBJ = None
+_INDEX_MTIME = None
+_META_MTIME = None
+
+def _load_index_and_metadata_cached():
+    global _INDEX_OBJ, _META_OBJ, _INDEX_MTIME, _META_MTIME
+    index_path = ROOT / "faiss_index" / "index.bin"
+    meta_path = ROOT / "faiss_index" / "metadata.json"
+    try:
+        idx_mtime = index_path.stat().st_mtime if index_path.exists() else None
+        meta_mtime = meta_path.stat().st_mtime if meta_path.exists() else None
+        reload_index = _INDEX_OBJ is None or _INDEX_MTIME != idx_mtime
+        reload_meta = _META_OBJ is None or _META_MTIME != meta_mtime
+        if reload_index and index_path.exists():
+            _INDEX_OBJ = faiss.read_index(str(index_path))
+            _INDEX_MTIME = idx_mtime
+        if reload_meta and meta_path.exists():
+            raw = json.loads(meta_path.read_text(encoding='utf-8'))
+            _META_OBJ = raw['chunks'] if isinstance(raw, dict) and 'chunks' in raw else raw
+            _META_MTIME = meta_mtime
+    except Exception as e:
+        mcp_log("ERROR", f"Cache load failed: {e}")
+    return _INDEX_OBJ, _META_OBJ
+
+# Load env and allow configurable embedding model
 load_dotenv()
-EMBED_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-EMBED_URL = f"{EMBED_BASE_URL.rstrip('/')}/api/embeddings"
-EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
+from openai import OpenAI as _OpenAI
+_OPENAI_EMBED_MODEL = os.getenv("OPENAI_EMBED_MODEL", "text-embedding-3-small")
+_openai_client = _OpenAI()
 CHUNK_SIZE = 256
 CHUNK_OVERLAP = 40#can be set up to 50
 ROOT = Path(__file__).parent.resolve()
@@ -41,8 +67,11 @@ def _load_synonyms() -> dict:
 
 
 def _expand_query_with_synonyms(text: str) -> str:
+    """Expand query by words (not characters) using a simple space split.
+    Falls back gracefully if synonyms are missing.
+    """
     syn = _load_synonyms()
-    tokens = list(text)
+    tokens = text.split()
     expanded = []
     for t in tokens:
         expanded.append(t)
@@ -51,14 +80,47 @@ def _expand_query_with_synonyms(text: str) -> str:
     return " ".join(expanded)
 
 
+# BM25 cache (rebuild if metadata mtime changes)
+_BM25_OBJ = None
+_BM25_MTIME = None
+_BM25_SIZE = 0
+
+def _get_bm25(metadata: list[dict]) -> BM25Okapi:
+    global _BM25_OBJ, _BM25_MTIME, _BM25_SIZE
+    meta_path = ROOT / 'faiss_index' / 'metadata.json'
+    mtime = meta_path.stat().st_mtime if meta_path.exists() else None
+    need_rebuild = (_BM25_OBJ is None) or (_BM25_MTIME != mtime) or (_BM25_SIZE != len(metadata))
+    if need_rebuild:
+        corpus = []
+        for m in metadata:
+            if 'text' in m:
+                corpus.append(m['text'])
+            elif 'chunk' in m:
+                corpus.append(m['chunk'])
+            else:
+                corpus.append(str(m))
+        tokenized_corpus = [doc.split() for doc in corpus]
+        _BM25_OBJ = BM25Okapi(tokenized_corpus)
+        _BM25_MTIME = mtime
+        _BM25_SIZE = len(metadata)
+    return _BM25_OBJ
+
+
 def _bm25_search(expanded_query: str, metadata: list[dict], top_k: int = 20) -> dict[int, float]:
-    corpus = [m['chunk'] for m in metadata]
-    tokenized_corpus = [list(doc) for doc in corpus]
-    bm25 = BM25Okapi(tokenized_corpus)
-    scores = bm25.get_scores(list(expanded_query))
-    # take top_k indices by score
-    idxs = np.argsort(scores)[::-1][:top_k]
-    return {int(i): float(scores[int(i)]) for i in idxs}
+    bm25 = _get_bm25(metadata)
+    scores = bm25.get_scores(expanded_query.split())
+    idxs = np.argsort(scores)[::-1]
+    # dedupe is implicit; select top_k positives
+    out = {}
+    for i in idxs:
+        i = int(i)
+        sc = float(scores[i])
+        if sc <= 0:
+            break
+        out[i] = sc
+        if len(out) >= top_k:
+            break
+    return out
 
 
 def _rrf_fusion(bm25_indices: iter, vec_ranking: list[int], k: int = 60) -> list[int]:
@@ -78,9 +140,23 @@ def _rrf_fusion(bm25_indices: iter, vec_ranking: list[int], k: int = 60) -> list
 
 
 def get_embedding(text: str) -> np.ndarray:
-    response = requests.post(EMBED_URL, json={"model": EMBED_MODEL, "prompt": text})
-    response.raise_for_status()
-    return np.array(response.json()["embedding"], dtype=np.float32)
+    """Get embedding with timeout and retry logic."""
+    import time
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            resp = _openai_client.embeddings.create(
+                model=_OPENAI_EMBED_MODEL,
+                input=text,
+                timeout=30
+            )
+            return np.array(resp.data[0].embedding, dtype=np.float32)
+        except Exception as e:
+            if attempt == max_retries - 1:
+                mcp_log("ERROR", f"Embedding failed after {max_retries} attempts: {e}")
+                raise e
+            mcp_log("WARN", f"Embedding attempt {attempt + 1} failed: {e}, retrying...")
+            time.sleep(1)
 
 from temperature_rules import extract_temperature
 
@@ -111,9 +187,13 @@ def search_documents(query: str) -> list[str]:
     ensure_faiss_ready()
     mcp_log("SEARCH", f"Query: {query}")
     try:
-        # Load metadata and FAISS index
-        index = faiss.read_index(str(ROOT / "faiss_index" / "index.bin"))
-        metadata = json.loads((ROOT / "faiss_index" / "metadata.json").read_text())
+        # Load metadata and FAISS index (cached)
+        index, metadata = _load_index_and_metadata_cached()
+        if index is None or metadata is None:
+            # Fallback to direct load once
+            index = faiss.read_index(str(ROOT / "faiss_index" / "index.bin"))
+            metadata_raw = json.loads((ROOT / "faiss_index" / "metadata.json").read_text(encoding='utf-8'))
+            metadata = metadata_raw['chunks'] if isinstance(metadata_raw, dict) and 'chunks' in metadata_raw else metadata_raw
 
         # 1) Query expansion via local synonyms
         expanded = _expand_query_with_synonyms(query)
@@ -129,34 +209,102 @@ def search_documents(query: str) -> list[str]:
         # 4) RRF fusion
         fused = _rrf_fusion(bm25_scores.keys(), vec_ranking, k=60)
 
-        # 5) Compose results with file name and chunk id, with temperature range extraction
-        top_indices = fused[:5]  # Reduce to 5 for more focused results
-        results = []
-        sources = []
-        for idx in top_indices:
+        # 4.5) Light reranker with context tagging
+        def _context_tag(text: str) -> str:
+            tl = text.lower()
+            if any(w in tl for w in ["bath", "bathtub", "tub", "water temperature", "shower"]):
+                return "bath"
+            if any(w in tl for w in ["fever", "temperature of baby", "high temperature", "doctor", "sick"]):
+                return "fever"
+            if any(w in tl for w in ["room", "nursery", "sleep", "crib", "bedroom"]):
+                return "room"
+            return "general"
+
+        ql = query.lower()
+        query_pref = None
+        if any(w in ql for w in ["bath", "bathtub", "tub", "water"]):
+            query_pref = "bath"
+        elif any(w in ql for w in ["fever", "sick", "ill", "temperature of baby"]):
+            query_pref = "fever"
+        elif any(w in ql for w in ["room", "sleep", "nursery", "bedroom"]):
+            query_pref = "room"
+
+        reranked = []
+        for rank_pos, idx in enumerate(fused):
+            if idx >= len(metadata):
+                continue
             data = metadata[idx]
-            chunk_text = data['chunk']
-            # Try to extract temperature range and format with both units
+            text = data.get('text', data.get('chunk', '')) or ''
+            tag = _context_tag(text)
+            base = 1.0 / (1.0 + rank_pos)  # higher for earlier
+            boost = 0.3 if (query_pref and tag == query_pref) else 0.0
+            reranked.append((idx, base + boost, tag))
+        reranked.sort(key=lambda x: x[1], reverse=True)
+
+        # 5) Compose structured results with file name and chunk id, with optional temperature formatting
+        top = reranked[:5]
+        # Debug print ranked order for troubleshooting with chunk content
+        try:
+            dbg = []
+            for (i, s, t) in top:
+                chunk_text = metadata[i].get('text', metadata[i].get('chunk', ''))
+                preview = (chunk_text[:100] + '...') if len(chunk_text) > 100 else chunk_text
+                dbg.append({
+                    'idx': i,
+                    'score': round(s, 4),
+                    'tag': t,
+                    'source': metadata[i].get('doc_id', metadata[i].get('doc', '')),
+                    'content_preview': preview
+                })
+            mcp_log("RANKED", f"Top reranked: {dbg}")
+        except Exception:
+            pass
+
+        results: list[dict] = []
+        sources = []
+        for (idx, score, tag) in top:
+            data = metadata[idx]
+            chunk_text = data.get('text', data.get('chunk', ''))
+            doc_name = data.get('doc_id', data.get('doc', ''))
+            chunk_id = data.get('chunk_id', data.get('id', idx))
+
+            entry = {
+                'text': chunk_text,
+                'context_tag': tag,
+                'source': doc_name,
+                'chunk_id': chunk_id
+            }
+
+            # If a clear temperature range is found, add a formatted_short field to help downstream LLM
             temps = extract_temperature(chunk_text)
             if temps:
                 t = temps[0]
-                formatted = _format_temp_range_as_both_units(t['min'], t['max'], t['unit'])
-                results.append(f"{formatted}\n[Source: {data['doc']}, ID: {data['chunk_id']}]")
-            else:
-                results.append(f"{chunk_text}\n[Source: {data['doc']}, ID: {data['chunk_id']}]")
-            sources.append(data['doc'])
-        # append a final Sources line (unique)
-        if sources:
-            uniq = []
-            seen = set()
-            for s in sources:
-                if s not in seen:
-                    uniq.append(s)
-                    seen.add(s)
-            results.append(f"Sources: {'; '.join(uniq)}")
-        return results
+                entry['formatted_temp'] = _format_temp_range_as_both_units(t['min'], t['max'], t['unit'])
+
+            results.append(entry)
+            if doc_name:
+                sources.append(doc_name)
+
+        # Append de-duplicated sources separately for convenience
+        unique_sources = []
+        seen = set()
+        for s in sources:
+            if s not in seen:
+                unique_sources.append(s)
+                seen.add(s)
+
+        payload = {
+            'results': results,
+            'sources': unique_sources
+        }
+        # Return as a single JSON string element (stable for MCP clients)
+        return [json.dumps(payload, ensure_ascii=False)]
     except Exception as e:
-        return [f"ERROR: Failed to search: {str(e)}"]
+        import traceback
+        error_details = traceback.format_exc()
+        mcp_log("ERROR", f"Search failed: {str(e)}")
+        mcp_log("ERROR", f"Traceback: {error_details}")
+        return [f"ERROR: Failed to search: {str(e)} | Details: {error_details[:200]}"]
 
 @mcp.tool()
 def convert_temperature(input: TemperatureInput) -> TemperatureOutput:

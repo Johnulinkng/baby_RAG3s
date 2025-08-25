@@ -70,37 +70,43 @@ async def execute_tool(session: ClientSession, tools: list[Any], response: str) 
         result = await session.call_tool(tool_name, arguments=arguments)
 
         if hasattr(result, 'content'):
+            # Convert MCP content to Python value
             if isinstance(result.content, list):
-                out = [getattr(item, 'text', str(item)) for item in result.content]
+                out_items = []
+                for item in result.content:
+                    text_val = getattr(item, 'text', None)
+                    if text_val is not None:
+                        out_items.append(text_val)
+                    else:
+                        out_items.append(str(item))
+                out = out_items
             else:
                 out = getattr(result.content, 'text', str(result.content))
         else:
             out = str(result)
 
-        # If the tool output contains multiple snippets with [Source: ...], collect unique filenames
+        # Parse structured JSON from search_documents (first list element)
         sources: list[str] = []
-        try:
-            from re import findall
-            if isinstance(out, list):
-                joined = "\n".join(out)
-            else:
-                joined = str(out)
-            matches = findall(r"\[Source:\s*([^,\]]+)", joined)
-            if matches:
-                # de-duplicate while preserving order
-                seen = set()
-                for m in matches:
-                    if m not in seen:
-                        sources.append(m)
-                        seen.add(m)
-                # Append a Sources line only if it's not already present
-                if 'Sources:' not in joined:
-                    if isinstance(out, list):
-                        out.append(f"Sources: {'; '.join(sources)}")
-                    else:
-                        out = f"{joined}\nSources: {'; '.join(sources)}"
-        except Exception:
-            pass
+        if tool_name == "search_documents":
+            try:
+                import json
+                payload_str = None
+                if isinstance(out, list) and out:
+                    payload_str = out[0] if isinstance(out[0], str) else str(out[0])
+                elif isinstance(out, str):
+                    payload_str = out
+                if payload_str:
+                    payload = json.loads(payload_str)
+                    # normalize minimal shape: {'results':[...], 'sources':[...]} or list
+                    if isinstance(payload, dict):
+                        sources = list(payload.get('sources', []))
+                        out = payload
+                    elif isinstance(payload, list):
+                        # fall back: list of entries each with {text, context_tag, source, chunk_id}
+                        out = {'results': payload, 'sources': []}
+                        sources = []
+            except Exception as e:
+                log("tool", f"search_documents JSON parse failed: {e}")
 
         log("tool", f"✅ {tool_name} result: {out}")
         return ToolCallResult(

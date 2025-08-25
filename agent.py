@@ -14,13 +14,74 @@ import shutil
 import sys
 from pathlib import Path
 import re
+import json
+from openai import OpenAI
+
+# Evidence-based answer prompts
+EVIDENCE_BASED_ANSWER_SYSTEM_PROMPT = """
+You are a precise, evidence-grounded, professional infant care AI assistant. Your task is to answer the user's question strictly and only based on the provided <EVIDENCE>.
+
+# Instructions:
+1. Carefully read and understand all <EVIDENCE> content.
+2. Your answer must be entirely derived from the <EVIDENCE>; do not add external knowledge, opinions, or unsupported reasoning.
+3. If the <EVIDENCE> is sufficient, provide an accurate, concise, professional answer. 
+4. Generating answer naturally like a responsible human would in a conversation: fluent sentences, no asterisks, clear and direct.
+5. If the <EVIDENCE> is only partially relevant, answer only the relevant parts and explicitly state: "Based on the available evidence, this cannot be fully determined..." when appropriate.
+6. If the <EVIDENCE> cannot answer the question at all, your answer must be: "According to the available evidence, no relevant answer was found."
+7. You must end the answer with a separate line listing all cited sources in the format: `Sources: DocumentA.pdf, DocumentB.pdf...`
+   If there is no evidence and the question requires professional knowledge, generate a brief, professional answer and append: (Model-generated answer, please verify)
+# Output format:
+[Your answer]
+
+Sources: [List of cited documents]
+"""
+
+EVIDENCE_BASED_ANSWER_USER_PROMPT = """
+User Question: {query}
+
+<EVIDENCE>
+{evidence}
+</EVIDENCE>
+
+Please answer the question strictly based on the evidence above.
+"""
+
+# General answer prompt for when no evidence is available
+GENERAL_ANSWER_SYSTEM_PROMPT = """
+You are a professional infant care AI assistant. Provide accurate, practical baby-care advice based on your expertise.
+
+# Instructions:
+1. Provide accurate, professional infant-care advice.
+2. Keep the answer concise and easy to understand.
+3. For medical concerns, recommend consulting a healthcare professional.
+4. Maintain a friendly and professional tone.
+5. End the answer with: (Model-generated answer, please verify)
+
+# Output format:
+[Your professional answer]
+
+(Model-generated answer, please verify)
+"""
+
+GENERAL_ANSWER_USER_PROMPT = """
+User Question: {query}
+
+Please answer this infant-care-related question based on your expertise.
+"""
+
+# Initialize OpenAI client (shared for evidence-based answering)
+try:
+    _openai_api_key = os.getenv("OPENAI_API_KEY")
+    openai_client = OpenAI(api_key=_openai_api_key) if _openai_api_key else OpenAI()
+except Exception:
+    openai_client = OpenAI()
 
 
 def log(stage: str, msg: str):
     now = datetime.datetime.now().strftime("%H:%M:%S")
     print(f"[{now}] [{stage}] {msg}")
 
-max_steps = 3
+max_steps = 2
 
 async def main(user_input: str):
     try:
@@ -78,17 +139,24 @@ async def main(user_input: str):
                                 log("plan", f"Plan generated: {plan}")
 
                                 if plan.startswith("FINAL_ANSWER:"):
-                                    log("agent", f"✅ FINAL RESULT: {plan}")
-                                    final_answer = plan.replace("FINAL_ANSWER:", "").strip()
-                                    break
+                                    # Guard: for knowledge intents, only accept FINAL_ANSWER if we've grounded it via search
+                                    knowledge_intents = {"factoid", "numerical_range", "advice"}
+                                    has_search = any(
+                                        getattr(m, "tool_name", None) == "search_documents" and m.session_id == session_id
+                                        for m in memory.data
+                                    )
+                                    if (perception.intent in knowledge_intents or perception.intent is None) and not has_search:
+                                        # Force a search step instead of accepting hallucinated FINAL_ANSWER
+                                        query_sanitized = query.replace("|", " ")
+                                        user_input = f'FUNCTION_CALL: search_documents|query="{query_sanitized}"'
+                                        log("agent", "Deferring ungrounded FINAL_ANSWER; forcing search_documents")
+                                    else:
+                                        log("agent", f"✅ FINAL RESULT: {plan}")
+                                        final_answer = plan.replace("FINAL_ANSWER:", "").strip()
+                                        break
 
-                                # Also check if the plan contains a final answer without the prefix
-                                # Robust temperature detection in plan text
-                                temp_pattern = r"((?:6\s*8)\s*(?:-|–|~|to)\s*(?:7\s*2)\s*(?:°\s*)?F)(?:\s*(?:\(|\s)\s*((?:2\s*0)\s*(?:-|–|~|to)\s*(?:2\s*2)\s*(?:°\s*)?C)\)?)?"
-                                if re.search(temp_pattern, plan, flags=re.IGNORECASE):
-                                    log("agent", f"✅ TEMPERATURE ANSWER FOUND: {plan}")
-                                    final_answer = plan.strip()
-                                    break
+                                # Do NOT finalize based on temperature pattern in the plan alone.
+                                # Only accept FINAL_ANSWER explicitly or finalize after grounded search results.
 
                                 try:
                                     result = await execute_tool(session, tools, plan)
@@ -104,30 +172,52 @@ async def main(user_input: str):
                                         session_id=session_id
                                     ))
 
-                                    # For search_documents, check if we have a direct answer
+                                    # For search_documents: short-circuit to evidence-based final answer
                                     if result.tool_name == "search_documents":
-                                        # Check if search results contain temperature information
-                                        result_text = str(result.result)
-                                        # Robust temperature detection in tool output
-                                        temp_pattern = r"((?:6\s*8)\s*(?:-|–|~|to)\s*(?:7\s*2)\s*(?:°\s*)?F)(?:\s*(?:\(|\s)\s*((?:2\s*0)\s*(?:-|–|~|to)\s*(?:2\s*2)\s*(?:°\s*)?C)\)?)?"
-                                        if re.search(temp_pattern, result_text, flags=re.IGNORECASE):
-                                            match = re.search(temp_pattern, result_text, flags=re.IGNORECASE)
-                                            final_answer = match.group(0) if match else result_text
-                                            log("agent", f"✅ TEMPERATURE FOUND: {final_answer}")
-                                            break
+                                        try:
+                                            payload = result.result  # should be dict with 'results' and 'sources'
+                                            if isinstance(payload, str):
+                                                payload = json.loads(payload)
+                                            results_list = payload.get('results', []) if isinstance(payload, dict) else []
+                                            sources_list = payload.get('sources', []) if isinstance(payload, dict) else []
 
-                                        # If this is the last step, try to generate a final answer from search results
-                                        if step == max_steps - 1:
-                                            log("agent", "Last step reached, generating final answer from search results")
-                                            # Try to extract any useful information from search results
+                                            # Build evidence block (concise)
+                                            evidence_lines = []
+                                            for item in results_list[:10]:
+                                                src = item.get('source') or ''
+                                                txt = (item.get('text') or '')
+                                                snippet = txt[:400] + ('...' if len(txt) > 400 else '')
+                                                evidence_lines.append(f"[Source: {src}]\n{snippet}")
+                                            evidence = "\n\n".join(evidence_lines) if evidence_lines else ""
+
+                                            system_prompt = EVIDENCE_BASED_ANSWER_SYSTEM_PROMPT
+                                            user_prompt = EVIDENCE_BASED_ANSWER_USER_PROMPT.format(query=query, evidence=evidence)
+
+                                            resp = openai_client.chat.completions.create(
+                                                model=os.getenv("OPENAI_LLM_MODEL", "gpt-4o-mini"),
+                                                messages=[
+                                                    {"role": "system", "content": system_prompt},
+                                                    {"role": "user", "content": user_prompt},
+                                                ],
+                                                temperature=0.2,
+                                            )
+                                            answer_text = (resp.choices[0].message.content or "").strip()
+
+                                            # Ensure sources formatting if evidence existed
+                                            if sources_list and "Sources:" not in answer_text:
+                                                answer_text = f"{answer_text}\n\nSources: {', '.join(sources_list)}"
+
+                                            final_answer = answer_text
+                                            log("agent", "✅ Short-circuited with evidence-based final answer")
+                                            break
+                                        except Exception as ee:
+                                            log("agent", f"Evidence-based answering failed, falling back: {ee}")
+                                            # Fallback to previous behavior: ask plan to summarize
                                             if result.result and len(str(result.result)) > 50:
-                                                # Use the search results to generate a final answer
                                                 user_input = f"Original question: {query}\nSearch results: {result.result}\nBased on the search results above, provide a concise and direct answer to the original question. If no relevant information is found, say 'I could not find specific information about this topic in the available documents.'"
                                             else:
                                                 final_answer = "I could not find specific information about this topic in the available documents."
                                                 break
-                                        else:
-                                            user_input = f"Original question: {query}\nSearch results: {result.result}\nBased on the search results above, provide a concise and direct answer to the original question."
                                     else:
                                         # For other tools, continue with original logic
                                         sources_suffix = ""
