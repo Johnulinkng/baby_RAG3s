@@ -1,0 +1,778 @@
+{
+  "health": {
+    "status_code": 200,
+    "response_time_ms": 6854,
+    "success": true,
+    "data": {
+      "success": true,
+      "data": {
+        "status": "healthy",
+        "total_documents": 22,
+        "total_chunks": 270,
+        "index_exists": true,
+        "search_working": true,
+        "embedding_model": "text-embedding-3-small",
+        "llm_model": "gpt-4o-mini",
+        "timestamp": "2025-08-26T11:09:39.887251"
+      },
+      "error": null
+    }
+  },
+  "non_streaming": [
+    {
+      "status_code": 200,
+      "response_time_ms": 7756,
+      "success": true,
+      "data": {
+        "success": true,
+        "data": {
+          "answer": "The ABCs of Safe Sleep are as follows: \n\nA is for Alone - Keep your baby in the same room as you, but not in the same bed, for at least the first 6 months and ideally for the first year.  \nB is for Back - Always place your baby on their back to sleep.  \nC is for Crib - Use a safe sleep environment, such as a crib, for your baby to sleep in.\n\nSources: UnderstandingBirth4-ParentHandouts.pdf, safe sleep well.pdf",
+          "sources": [
+            "UnderstandingBirth4-ParentHandouts.pdf",
+            "safe sleep well.pdf"
+          ],
+          "confidence": 0.8,
+          "processing_steps": [
+            "Analyzed user question",
+            "Retrieved documents in 4837 ms",
+            "LLM generation in 2300 ms",
+            "Total time 7137 ms"
+          ],
+          "search_results": [
+            {
+              "text": "cry to communicate their needs Sudden unexpected infant death (SUID) describes the sudden and unexpected death of a baby less than one year old. These deaths often happen during sleep or in the baby\u2019s sleep area. Follow the ABC\u2019s to reduce your baby\u2019s risk. A is for Alone \u2022 Keep your baby in the same room as you, but not in the same bed, for at least the first 6 months and ideally for the first year. \u2022 Put nothing in the crib but your baby. It\u2019s important to keep the room cool, around 68 to 72 degrees Fahrenheit to prevent overheating. \u2022 Keep the room smoke-free. B is for Back \u2022 Always place your baby on their back to sleep and put your baby back in their crib after nighttime feedings. C is for Crib \u2022 A baby should only sleep in a crib, bassinet, or co-sleeper. \u2022 Never put your baby to sleep on a couch, chair, or other soft space. \u2022 Make sure your baby\u2019s crib meets current safety standards, and always use a tight-fitting crib sheet. \u2022 Place your baby\u2019s sleep space away from furniture, windows, blinds, drapery cords, and keep mobiles out of your baby\u2019s reach. Always put your baby to sleep on their back \u00a9 InJoy Productions, Inc. All rights reserved.UNDERSTANDINGPregnancy to Parenthood Newborn Quiz 1. Some things you may notice about your newborn are: A. Fine soft hairs called lanugo B. A purplish skin tone C. A cone-shaped head D. All of the above 2. What are the ABCs",
+              "source": "UnderstandingBirth4-ParentHandouts.pdf",
+              "score": 1.3,
+              "chunk_id": "UnderstandingBirth4-ParentHandouts_15",
+              "metadata": {
+                "doc_id": "unknown",
+                "chunk_id": "UnderstandingBirth4-ParentHandouts_15",
+                "file_path": null,
+                "context_tag": "room"
+              }
+            },
+            {
+              "text": "reserved.UNDERSTANDINGPregnancy to Parenthood Newborn Quiz 1. Some things you may notice about your newborn are: A. Fine soft hairs called lanugo B. A purplish skin tone C. A cone-shaped head D. All of the above 2. What are the ABCs of Safe Sleep? A. Alone B. Back C. Crib D. All of the above 3. The Apgar score is: A. An assessment performed on your baby at 1 and 5 minutes after birth B. An immunization C. When the nurse assigns a number from 0 to 2 for your baby\u2019s appearance, pulse, grimace and reflexes, activity, and respiration D. A & C 4. The best time to start breastfeeding is: A. After you and your baby nap B. After you leave the hospital C. Within the first hour after birth D. None of the above 5. When your baby cries, it is best to: A. Let them cry it out and learn to self-soothe B. Respond to your baby\u2019s cries right away\u2014this lets them know that they can count on you C. Put the baby in a safe place (like their crib) and cool off for a few minutes if you are feeling stressed D. B & C TAKE NOTE Rooming-In Keep your baby with you in your room (day and night) at the hospital and at home. According to the American Academy of Pediatrics (AAP), the safest place for your baby to sleep is in the same room as you, but NOT in the same bed. The AAP recommends rooming-in for at least 6 months",
+              "source": "UnderstandingBirth4-ParentHandouts.pdf",
+              "score": 0.8,
+              "chunk_id": "UnderstandingBirth4-ParentHandouts_16",
+              "metadata": {
+                "doc_id": "unknown",
+                "chunk_id": "UnderstandingBirth4-ParentHandouts_16",
+                "file_path": null,
+                "context_tag": "room"
+              }
+            },
+            {
+              "text": "times. If no crib is available you can place your infant on a blanket on the floor. \u2022 Playpens are not a safe place for an infant to sleep. Playpens advertised as portable cribs do not meet the same safety requirements and are not as durable as cribs. \u2022 Car seats or any other devices that keep the infant seated or in a semi-reclined position are not made for unsupervised sleep. Sleeping in a sitting position can cause your baby\u2019s head to fall forward which can make it hard for your baby to breathe. 4. | Can I swaddle my infant? \u2022 Swaddling can help to calm and settle some infants. \u2022 Follow your infant\u2019s cues, and don\u2019t wrap if your infant resists. \u2022 Use a lightweight blanket and dress your infant in a light sleeper or onesie to avoid overheating. \u2022 Swaddle your infant loosely, so that he can flex his legs. Keep his head uncovered. \u2022 See page 9 for safe sleep practices. \u2022 Stop swaddling by age 2 months, before your infant starts to try to roll. \u2022 Talk to health care provider about swaddling your infant. 13 e r t n e C e c r u o s e R t r a t S t s e B 5. | I am afraid that my infant is cold if I do not cover her. \u2022 It is important that your infant is not too hot during sleep. Overheating is a risk factor for SIDS. It\u2019s recommended to dress your infant",
+              "source": "safe sleep well.pdf",
+              "score": 0.6333333333333333,
+              "chunk_id": "safe sleep well_12",
+              "metadata": {
+                "doc_id": "unknown",
+                "chunk_id": "safe sleep well_12",
+                "file_path": null,
+                "context_tag": "room"
+              }
+            }
+          ],
+          "reasoning_chain": null,
+          "tool_calls": null
+        },
+        "error": null
+      }
+    },
+    {
+      "status_code": 200,
+      "response_time_ms": 8663,
+      "success": true,
+      "data": {
+        "success": true,
+        "data": {
+          "answer": "According to the available evidence, no relevant answer was found.\n\nSources: UnderstandingBirth4-ParentHandouts.pdf, Medication chart.pdf",
+          "sources": [
+            "UnderstandingBirth4-ParentHandouts.pdf",
+            "Medication chart.pdf"
+          ],
+          "confidence": 0.8,
+          "processing_steps": [
+            "Analyzed user question",
+            "Retrieved documents in 5348 ms",
+            "LLM generation in 1169 ms",
+            "Total time 6517 ms"
+          ],
+          "search_results": [
+            {
+              "text": "reserved.UNDERSTANDINGPregnancy to Parenthood Newborn Quiz 1. Some things you may notice about your newborn are: A. Fine soft hairs called lanugo B. A purplish skin tone C. A cone-shaped head D. All of the above 2. What are the ABCs of Safe Sleep? A. Alone B. Back C. Crib D. All of the above 3. The Apgar score is: A. An assessment performed on your baby at 1 and 5 minutes after birth B. An immunization C. When the nurse assigns a number from 0 to 2 for your baby\u2019s appearance, pulse, grimace and reflexes, activity, and respiration D. A & C 4. The best time to start breastfeeding is: A. After you and your baby nap B. After you leave the hospital C. Within the first hour after birth D. None of the above 5. When your baby cries, it is best to: A. Let them cry it out and learn to self-soothe B. Respond to your baby\u2019s cries right away\u2014this lets them know that they can count on you C. Put the baby in a safe place (like their crib) and cool off for a few minutes if you are feeling stressed D. B & C TAKE NOTE Rooming-In Keep your baby with you in your room (day and night) at the hospital and at home. According to the American Academy of Pediatrics (AAP), the safest place for your baby to sleep is in the same room as you, but NOT in the same bed. The AAP recommends rooming-in for at least 6 months",
+              "source": "UnderstandingBirth4-ParentHandouts.pdf",
+              "score": 1.3,
+              "chunk_id": "UnderstandingBirth4-ParentHandouts_16",
+              "metadata": {
+                "doc_id": "unknown",
+                "chunk_id": "UnderstandingBirth4-ParentHandouts_16",
+                "file_path": null,
+                "context_tag": "room"
+              }
+            },
+            {
+              "text": "Systemic Narcotic Epidural Nitrous Oxide What is it? Who gives it? How is it given? When is the ideal time to receive it? When can you NOT receive it? How long does it last? Advantages Disadvantages",
+              "source": "Medication chart.pdf",
+              "score": 0.5,
+              "chunk_id": "Medication chart_0",
+              "metadata": {
+                "doc_id": "unknown",
+                "chunk_id": "Medication chart_0",
+                "file_path": null,
+                "context_tag": "general"
+              }
+            },
+            {
+              "text": "cry to communicate their needs Sudden unexpected infant death (SUID) describes the sudden and unexpected death of a baby less than one year old. These deaths often happen during sleep or in the baby\u2019s sleep area. Follow the ABC\u2019s to reduce your baby\u2019s risk. A is for Alone \u2022 Keep your baby in the same room as you, but not in the same bed, for at least the first 6 months and ideally for the first year. \u2022 Put nothing in the crib but your baby. It\u2019s important to keep the room cool, around 68 to 72 degrees Fahrenheit to prevent overheating. \u2022 Keep the room smoke-free. B is for Back \u2022 Always place your baby on their back to sleep and put your baby back in their crib after nighttime feedings. C is for Crib \u2022 A baby should only sleep in a crib, bassinet, or co-sleeper. \u2022 Never put your baby to sleep on a couch, chair, or other soft space. \u2022 Make sure your baby\u2019s crib meets current safety standards, and always use a tight-fitting crib sheet. \u2022 Place your baby\u2019s sleep space away from furniture, windows, blinds, drapery cords, and keep mobiles out of your baby\u2019s reach. Always put your baby to sleep on their back \u00a9 InJoy Productions, Inc. All rights reserved.UNDERSTANDINGPregnancy to Parenthood Newborn Quiz 1. Some things you may notice about your newborn are: A. Fine soft hairs called lanugo B. A purplish skin tone C. A cone-shaped head D. All of the above 2. What are the ABCs",
+              "source": "UnderstandingBirth4-ParentHandouts.pdf",
+              "score": 0.4666666666666667,
+              "chunk_id": "UnderstandingBirth4-ParentHandouts_15",
+              "metadata": {
+                "doc_id": "unknown",
+                "chunk_id": "UnderstandingBirth4-ParentHandouts_15",
+                "file_path": null,
+                "context_tag": "room"
+              }
+            }
+          ],
+          "reasoning_chain": null,
+          "tool_calls": null
+        },
+        "error": null
+      }
+    },
+    {
+      "status_code": 200,
+      "response_time_ms": 9064,
+      "success": true,
+      "data": {
+        "success": true,
+        "data": {
+          "answer": "To soothe a crying baby, you can comfort your infant by responding affectionately, which helps them feel secure. Speaking, singing, or gently stroking their forehead may be effective in calming them. Your presence can also assist your infant in learning to self-soothe and fall asleep.\n\nSources: safe sleep well.pdf, Breastfeeding Matters (B04-E).pdf",
+          "sources": [
+            "safe sleep well.pdf",
+            "Breastfeeding Matters (B04-E).pdf",
+            "01_user-guide-gazelle-s-US.pdf"
+          ],
+          "confidence": 0.8,
+          "processing_steps": [
+            "Analyzed user question",
+            "Retrieved documents in 4918 ms",
+            "LLM generation in 1994 ms",
+            "Total time 6912 ms"
+          ],
+          "search_results": [
+            {
+              "text": "Comfort your crying infant. It will not spoil him! Responding affectionately will help him learn that you will be there when needed. It helps your infant feel more secure and comfortable. \u2022 If your infant is crying or fussing you can speak, sing or stroke his forehead. Your presence may be sufficient to help your infant fall asleep. This will help your infant to learn how to self-soothe and fall back to sleep on his own. \u2022 White noise (continuous and monotonous sounds) such as the sound of a fan, vacuum cleaner, humidifier or recording of ocean waves may help your infant sleep. However, if used all the time your infant may come to depend on white noise to help him fall asleep. \u2022 Have realistic expectations. Not all infants are alike. Guide to Infant Sleep Patterns All babies are different and their patterns vary as they grow. The following information serves only as a guide. age Sleep aMount 0-3 months 4-6 months 6-11 months 12 months \u2022 14 to 17 hours of sleep per 24 hours \u2022 Many brief periods of sleep, ranging from 30 minutes to 3-4 hours at a time \u2022 Awake for 2 hours or less at a time \u2022 May cry a lot or have a fussy period of 3 to 6 hours, usually in the evening or at night \u2022 May sleep more during the day than during the night \u2022 12-16 hours of sleep per 24 hours \u2022 2-3 naps, ranging from 30 minutes to 3 hours at a",
+              "source": "safe sleep well.pdf",
+              "score": 1.0,
+              "chunk_id": "safe sleep well_2",
+              "metadata": {
+                "doc_id": "unknown",
+                "chunk_id": "safe sleep well_2",
+                "file_path": null,
+                "context_tag": "room"
+              }
+            },
+            {
+              "text": "drops of milk right before you offer the breast. The smell and taste of the milk will encourage your baby to latch. \u2022 Use breast compressions during feeds to encourage a sleepy baby to be more alert. This will increase the amount of milk taken. To learn about breast compressions go to page 21 of this booklet. \u2022 Offer each breast more than once. Switch breasts more often to help wake your baby and encourage active feeding. Breastfeeding Matters 27 Calming a Fussy Baby Babies cry for many reasons \u2013 discomfort, loneliness, hunger, fear, tension, or tiredness. Some babies cry more than others even when they are healthy and well fed. This happens more often in the first three months. It also happens more at night. You cannot spoil your baby by holding and comforting them. In fact, babies develop best when their parents respond quickly to their needs and cues. If you know your baby has been well fed and burped, and your baby seems to cry for no reason, try these suggestions: \u2022 Hold your baby in your arms. \u2022 Hold your baby skin-to-skin (see page 11 for more information on how to safely hold your baby skin-to-skin). \u2022 Speak or sing to your baby. \u2022 Walk, rock or sway with your baby. Babies become familiar with their parent\u2019s heartbeat, voice and movements in the months before birth and this can be calming. \u2022 Change your baby\u2019s diaper if it is wet or dirty. \u2022 Adjust your baby\u2019s clothes if they seem too warm",
+              "source": "Breastfeeding Matters (B04-E).pdf",
+              "score": 0.5,
+              "chunk_id": "Breastfeeding Matters (B04-E)_38",
+              "metadata": {
+                "doc_id": "unknown",
+                "chunk_id": "Breastfeeding Matters (B04-E)_38",
+                "file_path": null,
+                "context_tag": "room"
+              }
+            },
+            {
+              "text": "GAZELLE S Stroller overview Configurations Tutorial video Preparing the stroller Adjusting the seat adapters Preparing the shopping basket Using the XXL sun canopy Using the bumper bar Using the brake Adjusting the handle bar Adjusting the seat position 2 Adjusting the leg rest 4 18 21 22 27 29 32 34 35 35 36 37 EN Using the harness system Folding Free-standing position Using the swivel locks Removing the wheels Using the raincover Attaching the infant car seat MONO Attaching the infant car seat DUO Attaching the carry cot MONO Attaching the carry cot DUO Attaching the cup holder Removing the fabric 38 41 44 44 45 45 47 50 55 56 60 61 3 EN Sun canopy Shoulder pads Bumper bar Bumper bar opening Harness buckle Seat unit Crotch pad Legrest 4 Handle adjustment / folding button Shopper Upper seat adapter Lower seat adapter Legrest adjustment EN Handle bar Folding safety lever Secondary fold button Backrest adjustment Backrest Upper seat adapter adjustment Rear suspension Fold lock Basket Fixation point for kid board Brake Mesh window with flap Cupholder fixation Swivel lock Front suspension Front wheel Rear wheel 5 EN Kinderwagen-\u00dcbersicht Konfigurationen Videoanleitung Vorbereitung des Kinderwagens Einstellung der Sitz-Adapter Vorbereitung des Einkaufskorbes Verwendung des XXL Sonnenverdecks Verwendung des Schutzb\u00fcgels Verwendung der Bremse Einstellung des Schiebegriffs Einstellung der Sitzposition 6 Einstellung der Beinst\u00fctze 8 18 21 22 27 29 32 34 35 35 36 37 DE Verwendung des Gurtsystems Faltung Selbststehende Position Verwendung der Vorderradsperre Abnahme der R\u00e4der Verwendung des Regenverdecks Anbringung der Babyschale MONO Anbringung der",
+              "source": "01_user-guide-gazelle-s-US.pdf",
+              "score": 0.3333333333333333,
+              "chunk_id": "01_user-guide-gazelle-s-US_0",
+              "metadata": {
+                "doc_id": "unknown",
+                "chunk_id": "01_user-guide-gazelle-s-US_0",
+                "file_path": null,
+                "context_tag": "general"
+              }
+            }
+          ],
+          "reasoning_chain": null,
+          "tool_calls": null
+        },
+        "error": null
+      }
+    },
+    {
+      "status_code": 200,
+      "response_time_ms": 26308,
+      "success": true,
+      "data": {
+        "success": true,
+        "data": {
+          "answer": "Based on the available evidence, solid foods should be introduced when your baby shows signs of readiness. It is recommended to breastfeed your baby and give vitamin D drops for the first 6 months. \n\nSources: Breastfeeding Matters (B04-E).pdf",
+          "sources": [
+            "Breastfeeding Matters (B04-E).pdf"
+          ],
+          "confidence": 0.8,
+          "processing_steps": [
+            "Analyzed user question",
+            "Retrieved documents in 22757 ms",
+            "LLM generation in 1392 ms",
+            "Total time 24150 ms"
+          ],
+          "search_results": [
+            {
+              "text": "parents in your community. The EarlyON Centre I went to was the best thing I ever did. I still go there every week and my baby is 10.5 months old. We talk, listen, share stories and learn. It is amazing that even though breastfeeding is a natural thing, there is still lots to learn. What should I give my baby when I introduce other foods? When your baby is showing signs of readiness for solid foods, begin with foods that are rich in iron. Well cooked meat, meat alternatives, and iron fortified infant cereal are rich in iron. Please see the booklet titled Feeding your Baby at https:// resources.beststart.org/wp-content/uploads/2019/04/D12-E.pdf. If you wish to talk with someone about feeding solids, here are some options: \u2022 Telehealth Ontario to discuss introducing solids with a dietitian at 1-866-797-0000. \u2022 Unlock Food at http://www.unlockfood.ca/. \u2022 Your local health department or contact ServiceOntario INFOline at 1-866-532-3161 or www.health.gov.on.ca/en/common/system/services/ phu/locations.aspx. \u2022 Your local health department or contact ServiceOntario INFOline at 1-866-532-3161 When can I give my baby cow\u2019s milk? If you continue to breastfeed, introducing cow\u2019s milk is optional. If you do choose to introduce cow\u2019s milk, wait until your baby is 9 to 12 months old and offer it in an open cup. Offer pasteurized whole (3.25%) cow\u2019s (or goat\u2019s) milk so your baby gets the extra calories and fat for their brain development. Skim, 1% and 2% milk are not recommended before 2 years of age since they do not have the extra calories and fat for your baby\u2019s brain",
+              "source": "Breastfeeding Matters (B04-E).pdf",
+              "score": 1.0,
+              "chunk_id": "Breastfeeding Matters (B04-E)_61",
+              "metadata": {
+                "doc_id": "unknown",
+                "chunk_id": "Breastfeeding Matters (B04-E)_61",
+                "file_path": null,
+                "context_tag": "general"
+              }
+            },
+            {
+              "text": "your skin. You might feel more comfortable breastfeeding in public once you have practiced a few times. Some parents find it helpful to practice breastfeeding in front of their partner or a close friend or a mirror before breastfeeding in a public place. When should I feed my baby more than breast milk? Breastfeed your baby and give vitamin D drops for the first 6 months. Watch your baby for signs of readiness to begin other foods around 6 months of age. Babies who are ready to begin complementary foods are able to: \u2022 Hold their head up steadily. \u2022 Sit up and lean forward. \u2022 Open their mouth when food is offered. \u2022 Use their thumb and their finger to pick up food. \u2022 Let you know when they are full and they no longer want food. Talk to your health care provider or a skilled professional such as a registered dietitian or public health nurse if you are thinking of beginning solids a little earlier or later than when your baby is 6 months old. Continue to breastfeed up to age of 2 years and beyond. Breastfeeding and breast milk provide your baby with important nutrients and immune protection even when your baby is receiving other foods as well. Breastfeeding Matters 39 Find other parents in your community. The EarlyON Centre I went to was the best thing I ever did. I still go there every week and my baby is 10.5 months old. We talk, listen, share stories and learn. It is amazing",
+              "source": "Breastfeeding Matters (B04-E).pdf",
+              "score": 0.5,
+              "chunk_id": "Breastfeeding Matters (B04-E)_60",
+              "metadata": {
+                "doc_id": "unknown",
+                "chunk_id": "Breastfeeding Matters (B04-E)_60",
+                "file_path": null,
+                "context_tag": "general"
+              }
+            },
+            {
+              "text": ". . . . . . . . . . . . . . . 33 Frequently Asked Questions S E C T I O N 6 . . . . . . . . . . . . . . . . . . . . . . . . 42 Getting Help \u2022 Where to get Help? Breastfeeding Matters 1 S E C T I O N 1 The Importance of Breastfeeding Breastfeeding is important for you and your baby. The term breastfeeding/breast milk is also known as chestfeeding/chest milk and can be used interchangeably. Breast milk has over 200 known ingredients and is the healthiest food for your baby. It also protects your baby from infection and has special components to help your baby grow and develop. Your baby needs only breast milk for the first 6 months. At 6 months, start solid foods and continue to breastfeed for up to 2 years and beyond. Breastfeeding matters because: \u2022 Everyone benefits from breastfeeding: you, your baby, your family and your community. \u2022 Breast milk is convenient, always the right temperature and available anytime. \u2022 Breastfeeding is free. \u2022 Breastfeeding promotes bonding between you and your baby. \u2022 Breastfeeding is environmentally friendly. \u2022 Breastfeeding reduces health care costs for your family and society. Find out 10 Great Reasons to Breastfeed your Baby at https://www.canada.ca/en/public-health/services/health-promotion/childhood-adolescence/stages- childhood/infancy-birth-two-years/breastfeeding-infant-nutrition/10-great-reasons-breastfeed-your- baby.html. Risks of Not Breastfeeding Babies who are not breastfed have a higher risk of: \u2022 Ear and chest infections. \u2022 Stomach and gut upsets causing diarrhea. \u2022 Sudden",
+              "source": "Breastfeeding Matters (B04-E).pdf",
+              "score": 0.3333333333333333,
+              "chunk_id": "Breastfeeding Matters (B04-E)_2",
+              "metadata": {
+                "doc_id": "unknown",
+                "chunk_id": "Breastfeeding Matters (B04-E)_2",
+                "file_path": null,
+                "context_tag": "general"
+              }
+            }
+          ],
+          "reasoning_chain": null,
+          "tool_calls": null
+        },
+        "error": null
+      }
+    }
+  ],
+  "streaming": [
+    {
+      "success": true,
+      "response_time_ms": 7803,
+      "events_count": 18,
+      "events": [
+        {
+          "type": "start",
+          "data": "streaming-begin"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "message",
+          "data": "{\"answer\": \"The ABCs of Safe Sleep are as follows: \\n\\nA is for Alone - Keep your baby in the same room as you, but not in the same bed, for at least the first 6 months and ideally for the first year.  \\nB is for Back - Always place your baby on their back to sleep.  \\nC is for Crib - Use a safe crib or bassinet for your baby to sleep in.\\n\\nSources: UnderstandingBirth4-ParentHandouts.pdf, safe sleep well.pdf\", \"sources\": [\"UnderstandingBirth4-ParentHandouts.pdf\", \"safe sleep well.pdf\"], \"confidence\": 0.8, \"processing_steps\": [\"Analyzed user question\", \"Retrieved documents in 4755 ms\", \"LLM generation in 2625 ms\", \"Total time 7380 ms\"], \"elapsed_sec\": 7.801}"
+        },
+        {
+          "type": "end",
+          "data": "done"
+        }
+      ]
+    },
+    {
+      "success": true,
+      "response_time_ms": 6826,
+      "events_count": 16,
+      "events": [
+        {
+          "type": "start",
+          "data": "streaming-begin"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "message",
+          "data": "{\"answer\": \"According to the available evidence, no relevant answer was found.\\n\\nSources: UnderstandingBirth4-ParentHandouts.pdf, Medication chart.pdf\", \"sources\": [\"UnderstandingBirth4-ParentHandouts.pdf\", \"Medication chart.pdf\"], \"confidence\": 0.8, \"processing_steps\": [\"Analyzed user question\", \"Retrieved documents in 5215 ms\", \"LLM generation in 1188 ms\", \"Total time 6403 ms\"], \"elapsed_sec\": 6.824}"
+        },
+        {
+          "type": "end",
+          "data": "done"
+        }
+      ]
+    },
+    {
+      "success": true,
+      "response_time_ms": 7790,
+      "events_count": 18,
+      "events": [
+        {
+          "type": "start",
+          "data": "streaming-begin"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "message",
+          "data": "{\"answer\": \"To soothe a crying baby, you can comfort your infant by responding affectionately, which helps them feel secure and comfortable. Speaking, singing, or gently stroking their forehead may also be effective. Your presence can be sufficient to help your infant fall asleep, and this interaction can assist them in learning to self-soothe.\\n\\nSources: safe sleep well.pdf, Breastfeeding Matters (B04-E).pdf\", \"sources\": [\"safe sleep well.pdf\", \"Breastfeeding Matters (B04-E).pdf\", \"01_user-guide-gazelle-s-US.pdf\"], \"confidence\": 0.8, \"processing_steps\": [\"Analyzed user question\", \"Retrieved documents in 5590 ms\", \"LLM generation in 1933 ms\", \"Total time 7523 ms\"], \"elapsed_sec\": 7.788}"
+        },
+        {
+          "type": "end",
+          "data": "done"
+        }
+      ]
+    },
+    {
+      "success": true,
+      "response_time_ms": 7330,
+      "events_count": 17,
+      "events": [
+        {
+          "type": "start",
+          "data": "streaming-begin"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "keepalive",
+          "data": "ping"
+        },
+        {
+          "type": "message",
+          "data": "{\"answer\": \"Based on the available evidence, solid foods should be introduced when your baby shows signs of readiness for solid food. It is also recommended to breastfeed your baby and give vitamin D drops for the first 6 months.\\n\\nSources: Breastfeeding Matters (B04-E).pdf\", \"sources\": [\"Breastfeeding Matters (B04-E).pdf\"], \"confidence\": 0.8, \"processing_steps\": [\"Analyzed user question\", \"Retrieved documents in 4983 ms\", \"LLM generation in 1881 ms\", \"Total time 6865 ms\"], \"elapsed_sec\": 7.328}"
+        },
+        {
+          "type": "end",
+          "data": "done"
+        }
+      ]
+    }
+  ],
+  "concurrent": {
+    "success": true,
+    "total_time_ms": 18621,
+    "successful_requests": 3,
+    "total_requests": 3,
+    "results": [
+      {
+        "status_code": 200,
+        "response_time_ms": 18381,
+        "success": true,
+        "data": {
+          "success": true,
+          "data": {
+            "answer": "The ABCs of Safe Sleep are as follows: \n\nA is for Alone - Keep your baby in the same room as you, but not in the same bed, for at least the first 6 months and ideally for the first year.  \nB is for Back - Always place your baby on their back to sleep.  \nC is for Crib - Use a safe crib or bassinet for your baby's sleep. \n\nSources: UnderstandingBirth4-ParentHandouts.pdf, safe sleep well.pdf",
+            "sources": [
+              "UnderstandingBirth4-ParentHandouts.pdf",
+              "safe sleep well.pdf"
+            ],
+            "confidence": 0.8,
+            "processing_steps": [
+              "Analyzed user question",
+              "Retrieved documents in 13733 ms",
+              "LLM generation in 2405 ms",
+              "Total time 16139 ms"
+            ],
+            "search_results": [
+              {
+                "text": "cry to communicate their needs Sudden unexpected infant death (SUID) describes the sudden and unexpected death of a baby less than one year old. These deaths often happen during sleep or in the baby\u2019s sleep area. Follow the ABC\u2019s to reduce your baby\u2019s risk. A is for Alone \u2022 Keep your baby in the same room as you, but not in the same bed, for at least the first 6 months and ideally for the first year. \u2022 Put nothing in the crib but your baby. It\u2019s important to keep the room cool, around 68 to 72 degrees Fahrenheit to prevent overheating. \u2022 Keep the room smoke-free. B is for Back \u2022 Always place your baby on their back to sleep and put your baby back in their crib after nighttime feedings. C is for Crib \u2022 A baby should only sleep in a crib, bassinet, or co-sleeper. \u2022 Never put your baby to sleep on a couch, chair, or other soft space. \u2022 Make sure your baby\u2019s crib meets current safety standards, and always use a tight-fitting crib sheet. \u2022 Place your baby\u2019s sleep space away from furniture, windows, blinds, drapery cords, and keep mobiles out of your baby\u2019s reach. Always put your baby to sleep on their back \u00a9 InJoy Productions, Inc. All rights reserved.UNDERSTANDINGPregnancy to Parenthood Newborn Quiz 1. Some things you may notice about your newborn are: A. Fine soft hairs called lanugo B. A purplish skin tone C. A cone-shaped head D. All of the above 2. What are the ABCs",
+                "source": "UnderstandingBirth4-ParentHandouts.pdf",
+                "score": 1.3,
+                "chunk_id": "UnderstandingBirth4-ParentHandouts_15",
+                "metadata": {
+                  "doc_id": "unknown",
+                  "chunk_id": "UnderstandingBirth4-ParentHandouts_15",
+                  "file_path": null,
+                  "context_tag": "room"
+                }
+              },
+              {
+                "text": "reserved.UNDERSTANDINGPregnancy to Parenthood Newborn Quiz 1. Some things you may notice about your newborn are: A. Fine soft hairs called lanugo B. A purplish skin tone C. A cone-shaped head D. All of the above 2. What are the ABCs of Safe Sleep? A. Alone B. Back C. Crib D. All of the above 3. The Apgar score is: A. An assessment performed on your baby at 1 and 5 minutes after birth B. An immunization C. When the nurse assigns a number from 0 to 2 for your baby\u2019s appearance, pulse, grimace and reflexes, activity, and respiration D. A & C 4. The best time to start breastfeeding is: A. After you and your baby nap B. After you leave the hospital C. Within the first hour after birth D. None of the above 5. When your baby cries, it is best to: A. Let them cry it out and learn to self-soothe B. Respond to your baby\u2019s cries right away\u2014this lets them know that they can count on you C. Put the baby in a safe place (like their crib) and cool off for a few minutes if you are feeling stressed D. B & C TAKE NOTE Rooming-In Keep your baby with you in your room (day and night) at the hospital and at home. According to the American Academy of Pediatrics (AAP), the safest place for your baby to sleep is in the same room as you, but NOT in the same bed. The AAP recommends rooming-in for at least 6 months",
+                "source": "UnderstandingBirth4-ParentHandouts.pdf",
+                "score": 0.8,
+                "chunk_id": "UnderstandingBirth4-ParentHandouts_16",
+                "metadata": {
+                  "doc_id": "unknown",
+                  "chunk_id": "UnderstandingBirth4-ParentHandouts_16",
+                  "file_path": null,
+                  "context_tag": "room"
+                }
+              },
+              {
+                "text": "times. If no crib is available you can place your infant on a blanket on the floor. \u2022 Playpens are not a safe place for an infant to sleep. Playpens advertised as portable cribs do not meet the same safety requirements and are not as durable as cribs. \u2022 Car seats or any other devices that keep the infant seated or in a semi-reclined position are not made for unsupervised sleep. Sleeping in a sitting position can cause your baby\u2019s head to fall forward which can make it hard for your baby to breathe. 4. | Can I swaddle my infant? \u2022 Swaddling can help to calm and settle some infants. \u2022 Follow your infant\u2019s cues, and don\u2019t wrap if your infant resists. \u2022 Use a lightweight blanket and dress your infant in a light sleeper or onesie to avoid overheating. \u2022 Swaddle your infant loosely, so that he can flex his legs. Keep his head uncovered. \u2022 See page 9 for safe sleep practices. \u2022 Stop swaddling by age 2 months, before your infant starts to try to roll. \u2022 Talk to health care provider about swaddling your infant. 13 e r t n e C e c r u o s e R t r a t S t s e B 5. | I am afraid that my infant is cold if I do not cover her. \u2022 It is important that your infant is not too hot during sleep. Overheating is a risk factor for SIDS. It\u2019s recommended to dress your infant",
+                "source": "safe sleep well.pdf",
+                "score": 0.6333333333333333,
+                "chunk_id": "safe sleep well_12",
+                "metadata": {
+                  "doc_id": "unknown",
+                  "chunk_id": "safe sleep well_12",
+                  "file_path": null,
+                  "context_tag": "room"
+                }
+              }
+            ],
+            "reasoning_chain": null,
+            "tool_calls": null
+          },
+          "error": null
+        }
+      },
+      {
+        "status_code": 200,
+        "response_time_ms": 18459,
+        "success": true,
+        "data": {
+          "success": true,
+          "data": {
+            "answer": "The ABCs of Safe Sleep are:\n\nA. Alone - Keep your baby in the same room as you, but not in the same bed, for at least the first 6 months and ideally for the first year.  \nB. Back - Always place your baby on their back to sleep.  \nC. Crib - Use a safe sleep environment, such as a crib, for your baby to sleep in.\n\nSources: UnderstandingBirth4-ParentHandouts.pdf, safe sleep well.pdf",
+            "sources": [
+              "UnderstandingBirth4-ParentHandouts.pdf",
+              "safe sleep well.pdf"
+            ],
+            "confidence": 0.8,
+            "processing_steps": [
+              "Analyzed user question",
+              "Retrieved documents in 13762 ms",
+              "LLM generation in 2482 ms",
+              "Total time 16244 ms"
+            ],
+            "search_results": [
+              {
+                "text": "cry to communicate their needs Sudden unexpected infant death (SUID) describes the sudden and unexpected death of a baby less than one year old. These deaths often happen during sleep or in the baby\u2019s sleep area. Follow the ABC\u2019s to reduce your baby\u2019s risk. A is for Alone \u2022 Keep your baby in the same room as you, but not in the same bed, for at least the first 6 months and ideally for the first year. \u2022 Put nothing in the crib but your baby. It\u2019s important to keep the room cool, around 68 to 72 degrees Fahrenheit to prevent overheating. \u2022 Keep the room smoke-free. B is for Back \u2022 Always place your baby on their back to sleep and put your baby back in their crib after nighttime feedings. C is for Crib \u2022 A baby should only sleep in a crib, bassinet, or co-sleeper. \u2022 Never put your baby to sleep on a couch, chair, or other soft space. \u2022 Make sure your baby\u2019s crib meets current safety standards, and always use a tight-fitting crib sheet. \u2022 Place your baby\u2019s sleep space away from furniture, windows, blinds, drapery cords, and keep mobiles out of your baby\u2019s reach. Always put your baby to sleep on their back \u00a9 InJoy Productions, Inc. All rights reserved.UNDERSTANDINGPregnancy to Parenthood Newborn Quiz 1. Some things you may notice about your newborn are: A. Fine soft hairs called lanugo B. A purplish skin tone C. A cone-shaped head D. All of the above 2. What are the ABCs",
+                "source": "UnderstandingBirth4-ParentHandouts.pdf",
+                "score": 1.3,
+                "chunk_id": "UnderstandingBirth4-ParentHandouts_15",
+                "metadata": {
+                  "doc_id": "unknown",
+                  "chunk_id": "UnderstandingBirth4-ParentHandouts_15",
+                  "file_path": null,
+                  "context_tag": "room"
+                }
+              },
+              {
+                "text": "reserved.UNDERSTANDINGPregnancy to Parenthood Newborn Quiz 1. Some things you may notice about your newborn are: A. Fine soft hairs called lanugo B. A purplish skin tone C. A cone-shaped head D. All of the above 2. What are the ABCs of Safe Sleep? A. Alone B. Back C. Crib D. All of the above 3. The Apgar score is: A. An assessment performed on your baby at 1 and 5 minutes after birth B. An immunization C. When the nurse assigns a number from 0 to 2 for your baby\u2019s appearance, pulse, grimace and reflexes, activity, and respiration D. A & C 4. The best time to start breastfeeding is: A. After you and your baby nap B. After you leave the hospital C. Within the first hour after birth D. None of the above 5. When your baby cries, it is best to: A. Let them cry it out and learn to self-soothe B. Respond to your baby\u2019s cries right away\u2014this lets them know that they can count on you C. Put the baby in a safe place (like their crib) and cool off for a few minutes if you are feeling stressed D. B & C TAKE NOTE Rooming-In Keep your baby with you in your room (day and night) at the hospital and at home. According to the American Academy of Pediatrics (AAP), the safest place for your baby to sleep is in the same room as you, but NOT in the same bed. The AAP recommends rooming-in for at least 6 months",
+                "source": "UnderstandingBirth4-ParentHandouts.pdf",
+                "score": 0.8,
+                "chunk_id": "UnderstandingBirth4-ParentHandouts_16",
+                "metadata": {
+                  "doc_id": "unknown",
+                  "chunk_id": "UnderstandingBirth4-ParentHandouts_16",
+                  "file_path": null,
+                  "context_tag": "room"
+                }
+              },
+              {
+                "text": "times. If no crib is available you can place your infant on a blanket on the floor. \u2022 Playpens are not a safe place for an infant to sleep. Playpens advertised as portable cribs do not meet the same safety requirements and are not as durable as cribs. \u2022 Car seats or any other devices that keep the infant seated or in a semi-reclined position are not made for unsupervised sleep. Sleeping in a sitting position can cause your baby\u2019s head to fall forward which can make it hard for your baby to breathe. 4. | Can I swaddle my infant? \u2022 Swaddling can help to calm and settle some infants. \u2022 Follow your infant\u2019s cues, and don\u2019t wrap if your infant resists. \u2022 Use a lightweight blanket and dress your infant in a light sleeper or onesie to avoid overheating. \u2022 Swaddle your infant loosely, so that he can flex his legs. Keep his head uncovered. \u2022 See page 9 for safe sleep practices. \u2022 Stop swaddling by age 2 months, before your infant starts to try to roll. \u2022 Talk to health care provider about swaddling your infant. 13 e r t n e C e c r u o s e R t r a t S t s e B 5. | I am afraid that my infant is cold if I do not cover her. \u2022 It is important that your infant is not too hot during sleep. Overheating is a risk factor for SIDS. It\u2019s recommended to dress your infant",
+                "source": "safe sleep well.pdf",
+                "score": 0.6333333333333333,
+                "chunk_id": "safe sleep well_12",
+                "metadata": {
+                  "doc_id": "unknown",
+                  "chunk_id": "safe sleep well_12",
+                  "file_path": null,
+                  "context_tag": "room"
+                }
+              }
+            ],
+            "reasoning_chain": null,
+            "tool_calls": null
+          },
+          "error": null
+        }
+      },
+      {
+        "status_code": 200,
+        "response_time_ms": 18618,
+        "success": true,
+        "data": {
+          "success": true,
+          "data": {
+            "answer": "The ABCs of Safe Sleep are as follows: \n\nA is for Alone - Keep your baby in the same room as you, but not in the same bed, for at least the first 6 months and ideally for the first year.  \nB is for Back - Always place your baby on their back to sleep.  \nC is for Crib - Use a safe sleep environment, such as a crib, for your baby to sleep in.\n\nSources: UnderstandingBirth4-ParentHandouts.pdf, safe sleep well.pdf",
+            "sources": [
+              "UnderstandingBirth4-ParentHandouts.pdf",
+              "safe sleep well.pdf"
+            ],
+            "confidence": 0.8,
+            "processing_steps": [
+              "Analyzed user question",
+              "Retrieved documents in 13791 ms",
+              "LLM generation in 2600 ms",
+              "Total time 16391 ms"
+            ],
+            "search_results": [
+              {
+                "text": "cry to communicate their needs Sudden unexpected infant death (SUID) describes the sudden and unexpected death of a baby less than one year old. These deaths often happen during sleep or in the baby\u2019s sleep area. Follow the ABC\u2019s to reduce your baby\u2019s risk. A is for Alone \u2022 Keep your baby in the same room as you, but not in the same bed, for at least the first 6 months and ideally for the first year. \u2022 Put nothing in the crib but your baby. It\u2019s important to keep the room cool, around 68 to 72 degrees Fahrenheit to prevent overheating. \u2022 Keep the room smoke-free. B is for Back \u2022 Always place your baby on their back to sleep and put your baby back in their crib after nighttime feedings. C is for Crib \u2022 A baby should only sleep in a crib, bassinet, or co-sleeper. \u2022 Never put your baby to sleep on a couch, chair, or other soft space. \u2022 Make sure your baby\u2019s crib meets current safety standards, and always use a tight-fitting crib sheet. \u2022 Place your baby\u2019s sleep space away from furniture, windows, blinds, drapery cords, and keep mobiles out of your baby\u2019s reach. Always put your baby to sleep on their back \u00a9 InJoy Productions, Inc. All rights reserved.UNDERSTANDINGPregnancy to Parenthood Newborn Quiz 1. Some things you may notice about your newborn are: A. Fine soft hairs called lanugo B. A purplish skin tone C. A cone-shaped head D. All of the above 2. What are the ABCs",
+                "source": "UnderstandingBirth4-ParentHandouts.pdf",
+                "score": 1.3,
+                "chunk_id": "UnderstandingBirth4-ParentHandouts_15",
+                "metadata": {
+                  "doc_id": "unknown",
+                  "chunk_id": "UnderstandingBirth4-ParentHandouts_15",
+                  "file_path": null,
+                  "context_tag": "room"
+                }
+              },
+              {
+                "text": "reserved.UNDERSTANDINGPregnancy to Parenthood Newborn Quiz 1. Some things you may notice about your newborn are: A. Fine soft hairs called lanugo B. A purplish skin tone C. A cone-shaped head D. All of the above 2. What are the ABCs of Safe Sleep? A. Alone B. Back C. Crib D. All of the above 3. The Apgar score is: A. An assessment performed on your baby at 1 and 5 minutes after birth B. An immunization C. When the nurse assigns a number from 0 to 2 for your baby\u2019s appearance, pulse, grimace and reflexes, activity, and respiration D. A & C 4. The best time to start breastfeeding is: A. After you and your baby nap B. After you leave the hospital C. Within the first hour after birth D. None of the above 5. When your baby cries, it is best to: A. Let them cry it out and learn to self-soothe B. Respond to your baby\u2019s cries right away\u2014this lets them know that they can count on you C. Put the baby in a safe place (like their crib) and cool off for a few minutes if you are feeling stressed D. B & C TAKE NOTE Rooming-In Keep your baby with you in your room (day and night) at the hospital and at home. According to the American Academy of Pediatrics (AAP), the safest place for your baby to sleep is in the same room as you, but NOT in the same bed. The AAP recommends rooming-in for at least 6 months",
+                "source": "UnderstandingBirth4-ParentHandouts.pdf",
+                "score": 0.8,
+                "chunk_id": "UnderstandingBirth4-ParentHandouts_16",
+                "metadata": {
+                  "doc_id": "unknown",
+                  "chunk_id": "UnderstandingBirth4-ParentHandouts_16",
+                  "file_path": null,
+                  "context_tag": "room"
+                }
+              },
+              {
+                "text": "times. If no crib is available you can place your infant on a blanket on the floor. \u2022 Playpens are not a safe place for an infant to sleep. Playpens advertised as portable cribs do not meet the same safety requirements and are not as durable as cribs. \u2022 Car seats or any other devices that keep the infant seated or in a semi-reclined position are not made for unsupervised sleep. Sleeping in a sitting position can cause your baby\u2019s head to fall forward which can make it hard for your baby to breathe. 4. | Can I swaddle my infant? \u2022 Swaddling can help to calm and settle some infants. \u2022 Follow your infant\u2019s cues, and don\u2019t wrap if your infant resists. \u2022 Use a lightweight blanket and dress your infant in a light sleeper or onesie to avoid overheating. \u2022 Swaddle your infant loosely, so that he can flex his legs. Keep his head uncovered. \u2022 See page 9 for safe sleep practices. \u2022 Stop swaddling by age 2 months, before your infant starts to try to roll. \u2022 Talk to health care provider about swaddling your infant. 13 e r t n e C e c r u o s e R t r a t S t s e B 5. | I am afraid that my infant is cold if I do not cover her. \u2022 It is important that your infant is not too hot during sleep. Overheating is a risk factor for SIDS. It\u2019s recommended to dress your infant",
+                "source": "safe sleep well.pdf",
+                "score": 0.6333333333333333,
+                "chunk_id": "safe sleep well_12",
+                "metadata": {
+                  "doc_id": "unknown",
+                  "chunk_id": "safe sleep well_12",
+                  "file_path": null,
+                  "context_tag": "room"
+                }
+              }
+            ],
+            "reasoning_chain": null,
+            "tool_calls": null
+          },
+          "error": null
+        }
+      }
+    ]
+  }
+}

@@ -53,7 +53,6 @@ Agent循环:
   工具提示   上下文     历史信息   执行结果
 ```
 
-## 🚀 快速开始
 
 ### 环境要求
 
@@ -141,7 +140,7 @@ print('RAG结果:', result['data']['answer'] if result['success'] else result['e
 python test_tools/cli_test.py
 
 # 单次查询
-python test_tools/cli_test.py -q "婴儿房间的理想温度是多少？"
+python test_tools/cli_test.py -q "what is the ideal temperature for baby room？"
 
 # 添加文档
 python test_tools/cli_test.py --add-doc "path/to/document.pdf"
@@ -155,7 +154,7 @@ from agent import main
 
 # 异步调用Agent
 async def ask_question():
-    answer = await main("婴儿房间的理想温度是多少？")
+    answer = await main("what is the ideal temperature for baby room?")
     print(f"答案: {answer}")
 
 asyncio.run(ask_question())

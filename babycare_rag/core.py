@@ -88,8 +88,13 @@ class BabyCareRAG:
             return False
     
     def search_documents(self, query: str, top_k: int = 5) -> List[SearchResult]:
-        """Search documents and return relevant chunks."""
-        return self.search_engine.search(query, top_k)
+        """Search documents and return relevant chunks with timing."""
+        print(f"[DEBUG] Starting search for: {query[:50]}...")
+        t_start = time.perf_counter()
+        results = self.search_engine.search(query, top_k)
+        t_end = time.perf_counter()
+        print(f"[DEBUG] Search completed in {round((t_end - t_start) * 1000)}ms, found {len(results)} results")
+        return results
     
     def query(self, question: str, max_steps: int = 5) -> RAGResponse:
         """Process a query using evidence-based template (consistent with Agent path)."""

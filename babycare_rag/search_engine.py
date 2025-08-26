@@ -3,6 +3,7 @@
 import json
 import math
 import re
+import pickle
 from pathlib import Path
 from typing import List, Dict, Any, Tuple
 from collections import Counter, defaultdict
@@ -10,6 +11,7 @@ import faiss
 import numpy as np
 import requests
 from tqdm import tqdm
+from rank_bm25 import BM25Okapi
 
 from .config import RAGConfig
 from .models import SearchResult
@@ -29,6 +31,8 @@ class SearchEngine:
         # Initialize search components
         self.faiss_index = None
         self.metadata = None
+        self.bm25_index = None
+        self.bm25_corpus = None
         self._load_index()
     
     def _load_synonyms(self) -> Dict[str, List[str]]:
@@ -99,17 +103,99 @@ class SearchEngine:
                         self.metadata = existing_data
 
                 print(f"Loaded index with {len(self.metadata.get('chunks', []))} chunks")
+
+                # Load or build BM25 index
+                self._load_or_build_bm25_index()
             else:
                 print("No existing index found. Will create new index when documents are added.")
                 self.faiss_index = None
                 self.metadata = None
+                self.bm25_index = None
+                self.bm25_corpus = None
 
         except Exception as e:
             print(f"Error loading index: {e}")
             print("Resetting to clean state...")
             self.faiss_index = None
             self.metadata = None
-    
+            self.bm25_index = None
+            self.bm25_corpus = None
+
+    def _load_or_build_bm25_index(self):
+        """Load existing BM25 index or build new one."""
+        try:
+            bm25_file = self.index_dir / "bm25_index.pkl"
+            corpus_file = self.index_dir / "bm25_corpus.pkl"
+
+            if bm25_file.exists() and corpus_file.exists() and self.metadata:
+                # Check if BM25 index is up to date
+                chunks = self.metadata.get('chunks', [])
+
+                try:
+                    with open(corpus_file, 'rb') as f:
+                        stored_corpus = pickle.load(f)
+
+                    # Verify corpus matches current chunks
+                    if len(stored_corpus) == len(chunks):
+                        with open(bm25_file, 'rb') as f:
+                            self.bm25_index = pickle.load(f)
+                        self.bm25_corpus = stored_corpus
+                        print(f"[DEBUG] Loaded BM25 index with {len(stored_corpus)} documents")
+                        return
+                    else:
+                        print(f"[DEBUG] BM25 index outdated: {len(stored_corpus)} vs {len(chunks)} chunks")
+                except Exception as e:
+                    print(f"[DEBUG] Failed to load BM25 index: {e}")
+
+            # Build new BM25 index
+            self._build_bm25_index()
+
+        except Exception as e:
+            print(f"Error with BM25 index: {e}")
+            self.bm25_index = None
+            self.bm25_corpus = None
+
+    def _build_bm25_index(self):
+        """Build BM25 index from current chunks."""
+        if not self.metadata or not self.metadata.get('chunks'):
+            print("[DEBUG] No chunks available for BM25 indexing")
+            return
+
+        chunks = self.metadata['chunks']
+        print(f"[DEBUG] Building BM25 index for {len(chunks)} chunks...")
+
+        import time
+        t_start = time.perf_counter()
+
+        # Prepare corpus - tokenize all documents once
+        corpus = []
+        for chunk in chunks:
+            text = (chunk.get('text') or chunk.get('chunk') or '').lower()
+            # Use same tokenization as original BM25 implementation
+            tokens = re.findall(r'\b\w+\b', text)
+            corpus.append(tokens)
+
+        # Build BM25 index (this does all the heavy computation once)
+        self.bm25_index = BM25Okapi(corpus)
+        self.bm25_corpus = corpus
+
+        t_end = time.perf_counter()
+        print(f"[DEBUG] BM25 index built in {round((t_end - t_start) * 1000)}ms")
+
+        # Save BM25 index to disk
+        try:
+            bm25_file = self.index_dir / "bm25_index.pkl"
+            corpus_file = self.index_dir / "bm25_corpus.pkl"
+
+            with open(bm25_file, 'wb') as f:
+                pickle.dump(self.bm25_index, f)
+            with open(corpus_file, 'wb') as f:
+                pickle.dump(self.bm25_corpus, f)
+
+            print(f"[DEBUG] BM25 index saved to disk")
+        except Exception as e:
+            print(f"[DEBUG] Failed to save BM25 index: {e}")
+
     def _get_embedding(self, text: str) -> np.ndarray:
         """Get embedding for text using OpenAI embeddings API with timeout and retry."""
         try:
@@ -154,74 +240,58 @@ class SearchEngine:
         return " ".join(expanded_terms)
     
     def _bm25_search(self, query: str, top_k: int = 20) -> List[Tuple[int, float]]:
-        """Perform BM25 search on document chunks."""
-        if not self.metadata or not self.metadata.get('chunks'):
+        """Perform fast BM25 search using rank-bm25 library."""
+        if not self.bm25_index or not self.metadata:
+            print("[DEBUG] BM25 index not available")
             return []
-        
-        chunks = self.metadata['chunks']
-        query_terms = re.findall(r'\b\w+\b', query.lower())
-        
-        if not query_terms:
+
+        # Tokenize query using same method as corpus
+        query_tokens = re.findall(r'\b\w+\b', query.lower())
+
+        if not query_tokens:
             return []
-        
-        # Calculate document frequencies
-        doc_freq = defaultdict(int)
-        total_docs = len(chunks)
-        
-        for chunk in chunks:
-            text = (chunk.get('text') or chunk.get('chunk') or '').lower()
-            text_terms = set(re.findall(r'\b\w+\b', text))
-            for term in query_terms:
-                if term in text_terms:
-                    doc_freq[term] += 1
-        
-        # Calculate BM25 scores
-        k1, b = 1.5, 0.75
-        scores = []
-        
-        for i, chunk in enumerate(chunks):
-            text = (chunk.get('text') or chunk.get('chunk') or '').lower()
-            text_terms = re.findall(r'\b\w+\b', text)
-            doc_len = len(text_terms)
 
-            if doc_len == 0:
-                scores.append((i, 0.0))
-                continue
+        import time
+        t_start = time.perf_counter()
 
-            # Calculate average document length
-            avg_doc_len = sum(len(re.findall(r'\b\w+\b', (c.get('text') or c.get('chunk') or '').lower())) for c in chunks) / total_docs
-            
-            score = 0.0
-            for term in query_terms:
-                tf = text_terms.count(term)
-                if tf > 0:
-                    idf = math.log((total_docs - doc_freq[term] + 0.5) / (doc_freq[term] + 0.5))
-                    score += idf * (tf * (k1 + 1)) / (tf + k1 * (1 - b + b * doc_len / avg_doc_len))
-            
-            scores.append((i, score))
-        
-        # Sort by score and return top_k
-        scores.sort(key=lambda x: x[1], reverse=True)
-        return scores[:top_k]
+        # Get BM25 scores for all documents (this is very fast)
+        scores = self.bm25_index.get_scores(query_tokens)
+
+        t_end = time.perf_counter()
+        print(f"[DEBUG] BM25 scoring took {round((t_end - t_start) * 1000)}ms")
+
+        # Convert to (index, score) tuples and sort
+        indexed_scores = [(i, score) for i, score in enumerate(scores)]
+        indexed_scores.sort(key=lambda x: x[1], reverse=True)
+
+        return indexed_scores[:top_k]
     
     def _vector_search(self, query: str, top_k: int = 20) -> List[Tuple[int, float]]:
         """Perform vector search using FAISS."""
         if not self.faiss_index or not self.metadata:
             return []
-        
+
         try:
+            import time
+            t_embed_start = time.perf_counter()
             query_embedding = self._get_embedding(query).reshape(1, -1)
+            t_embed_end = time.perf_counter()
+            print(f"[DEBUG] Embedding generation took {round((t_embed_end - t_embed_start) * 1000)}ms")
+
+            t_search_start = time.perf_counter()
             distances, indices = self.faiss_index.search(query_embedding, top_k)
-            
+            t_search_end = time.perf_counter()
+            print(f"[DEBUG] FAISS search took {round((t_search_end - t_search_start) * 1000)}ms")
+
             # Convert distances to similarity scores (higher is better)
             scores = []
             for i, (idx, dist) in enumerate(zip(indices[0], distances[0])):
                 if idx >= 0:  # Valid index
                     similarity = 1.0 / (1.0 + dist)  # Convert distance to similarity
                     scores.append((idx, similarity))
-            
+
             return scores
-            
+
         except Exception as e:
             print(f"Error in vector search: {e}")
             return []
@@ -255,16 +325,27 @@ class SearchEngine:
         """Perform hybrid search combining BM25 and vector search."""
         if not self.metadata or not self.metadata.get('chunks'):
             return []
-        
+
         try:
+            import time
+
             # Expand query with synonyms
+            t_expand_start = time.perf_counter()
             expanded_query = self._expand_query_with_synonyms(query)
-            
+            t_expand_end = time.perf_counter()
+            print(f"[DEBUG] Query expansion took {round((t_expand_end - t_expand_start) * 1000)}ms")
+
             # Perform BM25 search
+            t_bm25_start = time.perf_counter()
             bm25_results = self._bm25_search(expanded_query, self.config.search_top_k)
-            
+            t_bm25_end = time.perf_counter()
+            print(f"[DEBUG] BM25 search took {round((t_bm25_end - t_bm25_start) * 1000)}ms")
+
             # Perform vector search
+            t_vector_start = time.perf_counter()
             vector_results = self._vector_search(query, self.config.search_top_k)
+            t_vector_end = time.perf_counter()
+            print(f"[DEBUG] Vector search took {round((t_vector_end - t_vector_start) * 1000)}ms")
             
             # Combine results using RRF
             if bm25_results and vector_results:
@@ -403,7 +484,10 @@ class SearchEngine:
             # Update in-memory index
             self.faiss_index = index
             self.metadata = metadata
-            
+
+            # Rebuild BM25 index as well
+            self._build_bm25_index()
+
             print(f"Successfully rebuilt index with {len(chunks)} chunks")
             return True
             
